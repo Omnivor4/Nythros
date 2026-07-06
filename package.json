@@ -1,0 +1,51 @@
+{
+  "name": "nythros",
+  "version": "0.3.0",
+  "description": "BYOK AI coding agent CLI — ringan, lokal, extensible lewat skill. AI-nya dari endpoint pilihan kamu sendiri.",
+  "type": "module",
+  "bin": {
+    "nythros": "bin/nythros.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node bin/nythros.js",
+    "generate-logo": "python3 scripts/generate_logo.py BG.png --width 20 --height 6 --output src/ui/logo.js",
+    "preview-logo": "python3 scripts/generate_logo.py BG.png --width 20 --height 6 --preview"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "commander": "^12.0.0",
+    "csv-parse": "^7.0.0",
+    "docx": "^9.7.1",
+    "exceljs": "^4.4.0",
+    "gray-matter": "^4.0.3",
+    "htm": "^3.1.1",
+    "ink": "^7.1.0",
+    "ink-text-input": "^6.0.0",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.2.7"
+  },
+  "license": "MIT",
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "CLAUDE.md",
+    "PROMPT.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "ai",
+    "cli",
+    "coding-agent",
+    "byok",
+    "anthropic"
+  ],
+  "author": "Farrel",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/omnivora/nythros.git"
+  }
+}

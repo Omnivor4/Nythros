@@ -1,0 +1,13 @@
+node_modules/
+.nythros/
+*.log
+.DS_Store
+
+# Temporary files and dummy projects
+dummy_projects/
+test_project_*/
+-p/
+Nythros/
+output.txt
+c.txt
+selfImprove_log.txt
