@@ -3,8 +3,11 @@ import { render } from 'ink';
 import { html } from './ui/htm.js';
 import { App } from './ui/App.js';
 import { Agent } from '../agent/Agent.js';
+import { MCP_PRESETS } from '../infrastructure/mcp/presets.js';
+import { syncMcpServers } from '../infrastructure/mcp/mcpLoader.js';
 import { isVaultConfigured, appendChatLog } from '../infrastructure/obsidian/vault.js';
 import { loadConfig } from '../shared/config.js';
+import { builtinTools } from '../tooling/tools.js';
 
 async function runShutdown(messages, config) {
   if (!messages || messages.length === 0) return;
@@ -34,20 +37,37 @@ async function runShutdown(messages, config) {
   }
 }
 
-export async function startRepl(kernel, language = "en") {
-  const agent = new Agent(kernel);
+import { saveConfig } from '../shared/config.js';
+
+export async function startRepl(language = "en") {
+  const config = loadConfig();
+
+  // Auto-install MCP presets if not configured
+  let updated = false;
+  for (const preset of MCP_PRESETS) {
+    if (!config.mcpServers.some(s => s.name === preset.name)) {
+      config.mcpServers.push({ name: preset.name, command: preset.command });
+      updated = true;
+    }
+  }
+  if (updated) {
+    saveConfig(config);
+  }
+  syncMcpServers();
+
+  const agent = new Agent(config);
   let sessionTotalUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
   let sessionModel = "";
   let lastMessages = [];
 
   const runAgentWrapper = async ({ input, mode, effort, conversationHistory, onProgress }) => {
-    
+
     // Slash commands interception
     if (input.startsWith("/")) {
       const args = input.slice(1).split(" ");
       const cmd = args[0].toLowerCase();
       let output = "";
-      
+
       switch (cmd) {
         case "help":
           output = [
@@ -68,14 +88,7 @@ export async function startRepl(kernel, language = "en") {
           ].join("\n");
           break;
         case "skill":
-          if (args[1] === "list") {
-            const skillRegistry = kernel.getService('skillRegistry');
-            const skills = skillRegistry.getAllSkills();
-            if (skills.length === 0) output = "No skills installed yet.";
-            else output = skills.map(s => "- " + s.name + ": " + s.description).join("\n");
-          } else {
-            output = "Usage: /skill [list | add <url> | remove <name>] - Refactored version in progress";
-          }
+          output = "Skill registry being migrated";
           break;
         case "config":
           if (args[1] === "show") {
@@ -103,9 +116,7 @@ export async function startRepl(kernel, language = "en") {
           output = "MCP integration commands are being migrated to the new Architecture.";
           break;
         case "tools": {
-          const registry = kernel.getService('toolRegistry');
-          const toolList = registry.getAllTools();
-          output = `Active tools (${toolList.length}):\n` + toolList.map(t => `  - ${t.name}`).join("\n");
+          output = `Active tools (${builtinTools.length}):\n` + builtinTools.map(t => `  - ${t.name}`).join("\n");
           break;
         }
         case "mode":
@@ -119,29 +130,22 @@ export async function startRepl(kernel, language = "en") {
         default:
           output = "Unknown command: /" + cmd + ". Type /help for available commands.";
       }
-      
+
       onProgress({ type: 'stream', chunk: output, isSystem: true });
       onProgress({ type: 'done' });
       return { text: output };
     }
 
     const msgs = conversationHistory.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }));
-    
-    onProgress({ type: 'start_turn' });
 
-    // Hook up agent events to REPL progress
-    const events = kernel.getService('events');
-    const unsubStart = events.on('tool:start', data => onProgress({ type: 'tool_start', tool: data.tool, input: data.input }));
-    const unsubEnd = events.on('tool:end', data => onProgress({ type: 'tool_end', tool: data.tool, output: data.output }));
+    onProgress({ type: 'start_turn' });
 
     const result = await agent.process(input, {
       effort,
-      initialMessages: msgs
+      initialMessages: msgs,
+      onProgress
     });
-    
-    unsubStart();
-    unsubEnd();
-    
+
     if (result.usage) {
       sessionTotalUsage.prompt_tokens += result.usage.prompt_tokens || 0;
       sessionTotalUsage.completion_tokens += result.usage.completion_tokens || 0;
@@ -150,7 +154,7 @@ export async function startRepl(kernel, language = "en") {
         onProgress({ type: "usage", usage: result.usage, model: sessionModel });
       }
     }
-    
+
     lastMessages = [...msgs, { role: 'user', text: input }, { role: 'agent', text: result.text }];
     appendChatLog(input, result.text).catch(() => {});
     return result;
@@ -177,9 +181,9 @@ export async function startRepl(kernel, language = "en") {
     html`<${App} defaultProvider=${"default"} language=${language} runAgentWrapper=${runAgentWrapper} onExit=${onExit} version=${version} />`,
     { exitOnCtrlC: false }
   );
-  
+
   await app.waitUntilExit();
-  
+
   process.stdout.write('\x1b[?1049l\x1b[?25h');
   process.exit(0);
 }
