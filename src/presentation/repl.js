@@ -44,6 +44,7 @@ export async function startRepl(language = "en") {
 
   // Auto-install MCP presets if not configured
   let updated = false;
+  config.mcpServers = config.mcpServers || [];
   for (const preset of MCP_PRESETS) {
     if (!config.mcpServers.some(s => s.name === preset.name)) {
       config.mcpServers.push({ name: preset.name, command: preset.command });
