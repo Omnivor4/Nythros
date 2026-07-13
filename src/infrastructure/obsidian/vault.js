@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { loadConfig } from "../config.js";
+import { loadConfig } from "../../shared/config.js";
 
 // PENTING: search di sini SENGAJA plain text matching (filename + isi +
 // tag frontmatter), BUKAN embedding/semantic search. Ini batas yang harus

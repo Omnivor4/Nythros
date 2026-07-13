@@ -4,7 +4,7 @@ import { html } from './htm.js';
 import { WelcomeScreen } from './WelcomeScreen.js';
 import { ChatView } from './ChatView.js';
 import { InputBox } from './InputBox.js';
-import { estimateCost, formatCost, formatUsage } from '../utils/pricing.js';
+import { estimateCost, formatCost, formatUsage } from '../../shared/utils/pricing.js';
 import { ThinkingIndicator } from './ThinkingIndicator.js';
 import { theme } from './theme.js';
 

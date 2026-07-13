@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { PROJECT_DIR, ensureProjectDirs } from "../utils/paths.js";
+import { PROJECT_DIR, ensureProjectDirs } from "../../shared/utils/paths.js";
 
 const STATE_FILE = "error-state.json";
 const MAX_CONSECUTIVE_FAILURES = 3;

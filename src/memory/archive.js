@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { PROJECT_DIR } from "../utils/paths.js";
+import { PROJECT_DIR } from "../shared/utils/paths.js";
 
 // Simpan per-project di .nythros/archive.jsonl
 // Format tiap entry: { timestamp, summary, key_points[], message_count }

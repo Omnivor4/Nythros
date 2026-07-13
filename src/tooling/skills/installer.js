@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 import matter from "gray-matter";
 
 const execAsync = promisify(exec);
-import { HOME_DIR, ensureHomeDirs } from "../utils/paths.js";
+import { HOME_DIR, ensureHomeDirs } from "../../shared/utils/paths.js";
 
 const SKILLS_DIR = path.join(HOME_DIR, "skills");
 const REGISTRY_PATH = path.join(HOME_DIR, "skills", "registry.json");

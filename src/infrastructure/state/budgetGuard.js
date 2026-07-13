@@ -1,4 +1,4 @@
-import { loadConfig } from "../config.js";
+import { loadConfig } from "../../shared/config.js";
 
 // State in-memory per proses CLI
 let sessionTokens = {

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { ensureHomeDirs, HOME_DIR } from "../utils/paths.js";
+import { ensureHomeDirs, HOME_DIR } from "../shared/utils/paths.js";
 
 const MEMORY_DIR = path.join(HOME_DIR, "memory");
 const LONGTERM_PATH = path.join(MEMORY_DIR, "longterm.json");

@@ -2,7 +2,7 @@ import React from 'react';
 import { Text, Box } from 'ink';
 import { html } from './htm.js';
 import { theme } from './theme.js';
-import { formatUsage, formatCost } from '../utils/pricing.js';
+import { formatUsage, formatCost } from '../../shared/utils/pricing.js';
 
 function parseAgentText(text) {
   const segments = [];

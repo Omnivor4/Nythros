@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import { isProtectedPath, looksDangerous, commandTouchesProtectedPath, askConfirmation, getConfirmMode, needsNetwork } from "../utils/confirm.js";
+import { isProtectedPath, looksDangerous, commandTouchesProtectedPath, askConfirmation, getConfirmMode, needsNetwork } from "../shared/utils/confirm.js";
 import { updateTodoTool } from "../infrastructure/state/todoCapsule.js";
-import { runInDocker } from "../core/dockerSandbox.js";
-import { loadConfig } from "../config.js";
+import { runInDocker } from "../infrastructure/core/dockerSandbox.js";
+import { loadConfig } from "../shared/config.js";
 
 const PROTECTED_PATHS = ["~/.nythros", ".nythros", "config.json"];
 

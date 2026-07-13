@@ -1,4 +1,4 @@
-import { loadConfig } from "../config.js";
+import { loadConfig } from "../../shared/config.js";
 import { MCPClient } from "../mcp/client.js";
 
 const activeMcpClients = new Map();

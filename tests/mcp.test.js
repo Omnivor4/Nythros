@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert";
-import { loadConfig, saveConfig } from "../src/config.js";
-import { syncMcpServers, getMcpTools, getActiveMcpClients } from "../src/agent/mcpLoader.js";
+import { loadConfig, saveConfig } from "../src/shared/config.js";
+import { syncMcpServers, getMcpTools, getActiveMcpClients } from "../src/infrastructure/mcp/mcpLoader.js";
 
 test("MCP Client Flow", async (t) => {
   // Clear any existing MCP servers in config first

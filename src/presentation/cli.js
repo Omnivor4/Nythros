@@ -1,10 +1,10 @@
 import { Command } from "commander";
-import { bootstrap } from "../runtime/bootstrap.js";
 import { Agent } from "../agent/Agent.js";
 import { startRepl } from "./repl.js";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadConfig } from "../shared/config.js";
 
 const __filename = fs.realpathSync(fileURLToPath(import.meta.url));
 const __dirname = path.dirname(__filename);
@@ -18,14 +18,14 @@ program
   .description("Send a single prompt to the agent")
   .action(async (prompt) => {
     try {
-      const kernel = await bootstrap();
-      const agent = new Agent(kernel);
-      
-      const events = kernel.getService('events');
-      events.on('execution:start', () => console.log('Thinking...'));
-      events.on('tool:start', (data) => console.log(`Calling tool: ${data.tool}`));
-      
-      const result = await agent.process(prompt);
+      const config = loadConfig();
+      const agent = new Agent(config);
+
+      const result = await agent.process(prompt, {
+        onProgress: (evt) => {
+          if (evt.type === 'tool_start') console.log(`Calling tool: ${evt.tool}`);
+        }
+      });
       console.log('\n', result.text);
     } catch (err) {
       console.error('Error during chat:', err.message);
@@ -44,11 +44,10 @@ if (process.argv.length <= 2) {
     console.error("Non-interactive mode detected. Please use 'nythros chat \"prompt\"' when piping data.");
     process.exit(1);
   }
-  
+
   (async () => {
     try {
-      const kernel = await bootstrap();
-      await startRepl(kernel, "en");
+      await startRepl("en");
     } catch (err) {
       console.error("Error starting REPL:", err);
       process.exit(1);

@@ -8,6 +8,11 @@ import { syncMcpServers } from '../infrastructure/mcp/mcpLoader.js';
 import { isVaultConfigured, appendChatLog } from '../infrastructure/obsidian/vault.js';
 import { loadConfig } from '../shared/config.js';
 import { builtinTools } from '../tooling/tools.js';
+import { listSkills, installSkill, removeSkill } from '../tooling/skills/installer.js';
+import { readMemory } from '../memory/memory.js';
+import { readRecentArchive } from '../memory/archive.js';
+import { budgetStatus } from '../infrastructure/state/budgetGuard.js';
+import { getMcpTools, getActiveMcpClients } from '../infrastructure/mcp/mcpLoader.js';
 
 async function runShutdown(messages, config) {
   if (!messages || messages.length === 0) return;
@@ -54,7 +59,7 @@ export async function startRepl(language = "en") {
   if (updated) {
     saveConfig(config);
   }
-  syncMcpServers();
+  await syncMcpServers();
 
   const agent = new Agent(config);
   let sessionTotalUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
@@ -89,7 +94,30 @@ export async function startRepl(language = "en") {
           ].join("\n");
           break;
         case "skill":
-          output = "Skill registry being migrated";
+          if (args[1] === "list") {
+            const skills = listSkills();
+            if (skills.length === 0) {
+              output = "Belum ada skill terinstall. Pakai: /skill add <repo-url>";
+            } else {
+              output = "Installed Skills:\n" + skills.map(s => `  - ${s.name}: ${s.description}`).join("\n");
+            }
+          } else if (args[1] === "add" && args[2]) {
+            try {
+              const entry = await installSkill(args[2]);
+              output = `✓ Skill "${entry.name}" berhasil diinstall.`;
+            } catch (e) {
+              output = `✗ Gagal install skill: ${e.message}`;
+            }
+          } else if (args[1] === "remove" && args[2]) {
+            try {
+              removeSkill(args[2]);
+              output = `✓ Skill "${args[2]}" berhasil dihapus.`;
+            } catch (e) {
+              output = `✗ Gagal hapus skill: ${e.message}`;
+            }
+          } else {
+            output = "Usage: /skill [add <repo-url> | list | remove <name>]";
+          }
           break;
         case "config":
           if (args[1] === "show") {
@@ -102,20 +130,60 @@ export async function startRepl(language = "en") {
             output = "Usage: /config show";
           }
           break;
-        case "memory":
-          output = "(memory context view not yet re-integrated)";
+        case "memory": {
+          const mem = readMemory();
+          output = mem ? `📝 Project Memory:\n${mem}` : "Belum ada memory untuk project ini.";
           break;
-        case "archive":
-          output = "Arsip Percakapan akan segera hadir kembali di v0.4.";
+        }
+        case "archive": {
+          const entries = readRecentArchive(5);
+          if (entries.length === 0) {
+            output = "Belum ada arsip percakapan.";
+          } else {
+            output = "📦 Arsip Terbaru:\n" + entries.map(e =>
+              `  [${e.timestamp?.slice(0, 10)}] ${e.summary} (${e.message_count} pesan)`
+            ).join("\n");
+          }
           break;
+        }
         case "budget":
-        case "cost":
-        case "endpoints":
-          output = "Fitur " + cmd + " sedang dimigrasi ke Kernel.";
+        case "cost": {
+          const status = budgetStatus();
+          output = [
+            `💰 Token Budget:`,
+            `  Terpakai : ${status.used.toLocaleString()} / ${status.limit.toLocaleString()} (${status.percent}%)`,
+            `  Prompt   : ${status.prompt.toLocaleString()}`,
+            `  Completion: ${status.completion.toLocaleString()}`,
+          ].join("\n");
           break;
-        case "mcp":
-          output = "MCP integration commands are being migrated to the new Architecture.";
+        }
+        case "endpoints": {
+          const cfg = loadConfig();
+          const eps = cfg.endpoints || [];
+          if (eps.length === 0) {
+            output = "Belum ada endpoint terkonfigurasi.";
+          } else {
+            output = "🔗 Endpoints:\n" + eps.map((ep, i) =>
+              `  ${i + 1}. ${ep.name || ep.id} — ${ep.base_url || "(belum diatur)"} [model: ${ep.model || "-"}]`
+            ).join("\n");
+          }
           break;
+        }
+        case "mcp": {
+          if (args[1] === "list") {
+            const clients = getActiveMcpClients();
+            const tools = getMcpTools();
+            if (clients.size === 0) {
+              output = "Tidak ada MCP server yang aktif.";
+            } else {
+              output = `🔌 MCP Servers (${clients.size} aktif, ${tools.length} tools):\n`
+                + Array.from(clients.keys()).map(n => `  - ${n}`).join("\n");
+            }
+          } else {
+            output = "Usage: /mcp list";
+          }
+          break;
+        }
         case "tools": {
           output = `Active tools (${builtinTools.length}):\n` + builtinTools.map(t => `  - ${t.name}`).join("\n");
           break;
