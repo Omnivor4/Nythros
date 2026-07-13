@@ -13,6 +13,7 @@ import { readMemory } from '../memory/memory.js';
 import { readRecentArchive } from '../memory/archive.js';
 import { budgetStatus } from '../infrastructure/state/budgetGuard.js';
 import { getMcpTools, getActiveMcpClients } from '../infrastructure/mcp/mcpLoader.js';
+import { registerAllCommands, executeCommand } from '../tooling/slashRegistry.js';
 
 async function runShutdown(messages, config) {
   if (!messages || messages.length === 0) return;
@@ -45,6 +46,7 @@ async function runShutdown(messages, config) {
 import { saveConfig } from '../shared/config.js';
 
 export async function startRepl(language = "en") {
+  registerAllCommands();
   const config = loadConfig();
 
   // Auto-install MCP presets if not configured
@@ -68,141 +70,35 @@ export async function startRepl(language = "en") {
 
   const runAgentWrapper = async ({ input, mode, effort, conversationHistory, onProgress }) => {
 
-    // Slash commands interception
+    // Slash commands interception - now using registry
     if (input.startsWith("/")) {
       const args = input.slice(1).split(" ");
       const cmd = args[0].toLowerCase();
-      let output = "";
+      const cmdArgs = args.slice(1);
 
-      switch (cmd) {
-        case "help":
-          output = [
-            "Available Slash Commands:",
-            "  /skill [add|list|remove] - Manage GitHub skills",
-            "  /config [show]           - Show Nythros configuration",
-            "  /memory                  - View current project memory",
-            "  /budget                  - Check token budget limit",
-            "  /cost                    - View session token usage & estimated cost",
-            "  /endpoints               - List configured endpoints",
-            "  /archive                 - View archived summaries",
-            "  /mcp                     - Model Context Protocol integration",
-            "  /tools                   - List all active tools",
-            "  /mode                    - Show current mode",
-            "  /python <code>           - Run Python code snippet",
-            "  /clear                   - Clear the terminal screen",
-            "  /exit                    - Exit Nythros",
-          ].join("\n");
-          break;
-        case "skill":
-          if (args[1] === "list") {
-            const skills = listSkills();
-            if (skills.length === 0) {
-              output = "Belum ada skill terinstall. Pakai: /skill add <repo-url>";
-            } else {
-              output = "Installed Skills:\n" + skills.map(s => `  - ${s.name}: ${s.description}`).join("\n");
-            }
-          } else if (args[1] === "add" && args[2]) {
-            try {
-              const entry = await installSkill(args[2]);
-              output = `✓ Skill "${entry.name}" berhasil diinstall.`;
-            } catch (e) {
-              output = `✗ Gagal install skill: ${e.message}`;
-            }
-          } else if (args[1] === "remove" && args[2]) {
-            try {
-              removeSkill(args[2]);
-              output = `✓ Skill "${args[2]}" berhasil dihapus.`;
-            } catch (e) {
-              output = `✗ Gagal hapus skill: ${e.message}`;
-            }
-          } else {
-            output = "Usage: /skill [add <repo-url> | list | remove <name>]";
-          }
-          break;
-        case "config":
-          if (args[1] === "show") {
-            const cfg = loadConfig();
-            if (cfg.endpoints && cfg.endpoints[0]) {
-               cfg.endpoints[0].api_key = cfg.endpoints[0].api_key ? "***" : "(not set)";
-            }
-            output = JSON.stringify(cfg, null, 2);
-          } else {
-            output = "Usage: /config show";
-          }
-          break;
-        case "memory": {
-          const mem = readMemory();
-          output = mem ? `📝 Project Memory:\n${mem}` : "Belum ada memory untuk project ini.";
-          break;
+      try {
+        const output = await executeCommand(cmd, cmdArgs, { config: loadConfig() });
+
+        // Special signals from registry
+        if (output === "CLEAR_SCREEN") {
+          return { text: "", action: "clear" };
         }
-        case "archive": {
-          const entries = readRecentArchive(5);
-          if (entries.length === 0) {
-            output = "Belum ada arsip percakapan.";
-          } else {
-            output = "📦 Arsip Terbaru:\n" + entries.map(e =>
-              `  [${e.timestamp?.slice(0, 10)}] ${e.summary} (${e.message_count} pesan)`
-            ).join("\n");
-          }
-          break;
+        if (output === "EXIT_APP") {
+          return { text: "", action: "exit" };
         }
-        case "budget":
-        case "cost": {
-          const status = budgetStatus();
-          output = [
-            `💰 Token Budget:`,
-            `  Terpakai : ${status.used.toLocaleString()} / ${status.limit.toLocaleString()} (${status.percent}%)`,
-            `  Prompt   : ${status.prompt.toLocaleString()}`,
-            `  Completion: ${status.completion.toLocaleString()}`,
-          ].join("\n");
-          break;
-        }
-        case "endpoints": {
-          const cfg = loadConfig();
-          const eps = cfg.endpoints || [];
-          if (eps.length === 0) {
-            output = "Belum ada endpoint terkonfigurasi.";
-          } else {
-            output = "🔗 Endpoints:\n" + eps.map((ep, i) =>
-              `  ${i + 1}. ${ep.name || ep.id} — ${ep.base_url || "(belum diatur)"} [model: ${ep.model || "-"}]`
-            ).join("\n");
-          }
-          break;
-        }
-        case "mcp": {
-          if (args[1] === "list") {
-            const clients = getActiveMcpClients();
-            const tools = getMcpTools();
-            if (clients.size === 0) {
-              output = "Tidak ada MCP server yang aktif.";
-            } else {
-              output = `🔌 MCP Servers (${clients.size} aktif, ${tools.length} tools):\n`
-                + Array.from(clients.keys()).map(n => `  - ${n}`).join("\n");
-            }
-          } else {
-            output = "Usage: /mcp list";
-          }
-          break;
-        }
-        case "tools": {
-          output = `Active tools (${builtinTools.length}):\n` + builtinTools.map(t => `  - ${t.name}`).join("\n");
-          break;
-        }
-        case "mode":
-          output = "Current Mode: " + mode.toUpperCase();
-          break;
-        case "exit":
-        case "quit":
-          return { text: "" };
-        case "clear":
-          return { text: "" };
-        default:
-          output = "Unknown command: /" + cmd + ". Type /help for available commands.";
+
+        onProgress({ type: 'stream', chunk: output, isSystem: true });
+        onProgress({ type: 'done' });
+        return { text: output };
+      } catch (e) {
+        const errorMsg = e.message.includes('Unknown command')
+          ? `Unknown command: /${cmd}. Type /help for available commands.`
+          : `Error: ${e.message}`;
+
+        onProgress({ type: 'stream', chunk: errorMsg, isSystem: true });
+        onProgress({ type: 'done' });
+        return { text: errorMsg };
       }
-
-      onProgress({ type: 'stream', chunk: output, isSystem: true });
-      onProgress({ type: 'done' });
-      return { text: output };
     }
 
     const msgs = conversationHistory.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }));

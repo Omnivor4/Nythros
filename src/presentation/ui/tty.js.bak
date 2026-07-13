@@ -208,13 +208,12 @@ export class TerminalUI {
       process.stdout.write(`\x1b[${downRows}B`);
     }
 
-    const linesUp = Math.min(this.lastRenderLines - 1, this.height - 1);
+    const linesUp = Math.min(this.lastRenderLines, this.height);
     if (linesUp > 0) {
       process.stdout.write(`\x1b[${linesUp}A`);
     }
 
-    process.stdout.write("\x1b[1G");
-    process.stdout.write("\x1b[0J"); 
+    process.stdout.write("\x1b[0J"); // Clear everything below current cursor position
     this.lastRenderLines = 0;
     this.cursorUpRows = 0;
   }
@@ -366,6 +365,7 @@ export class TerminalUI {
   }
 
   handleKeypress(str, key) {
+    console.log(`[DEBUG: tty.js handleKeypress] key: ${key?.name}, str: ${JSON.stringify(str)}`);
     const now = Date.now();
     const isPaste = this.lastKeyTime && (now - this.lastKeyTime < 15);
     this.lastKeyTime = now;

@@ -7,6 +7,7 @@ import { InputBox } from './InputBox.js';
 import { estimateCost, formatCost, formatUsage } from '../../shared/utils/pricing.js';
 import { ThinkingIndicator } from './ThinkingIndicator.js';
 import { theme } from './theme.js';
+import { executeCommand, listCommands } from '../../tooling/slashRegistry.js';
 
 const MODES = ['general', 'plan', 'execute'];
 
@@ -34,6 +35,7 @@ export const App = ({ defaultProvider, language, runAgentWrapper, onExit, versio
   };
 
   useInput((input, key) => {
+    console.log(`[DEBUG: App.js useInput] key: ${key?.name}, input: ${input}`);
     if (key.tab) {
       const nextModeIndex = (MODES.indexOf(mode) + 1) % MODES.length;
       setMode(MODES[nextModeIndex]);
@@ -55,10 +57,31 @@ export const App = ({ defaultProvider, language, runAgentWrapper, onExit, versio
       return;
     }
 
+    // Handle slash commands via registry
+    if (text.startsWith('/')) {
+      const args = text.slice(1).split(" ");
+      const cmd = args[0].toLowerCase();
+      const cmdArgs = args.slice(1);
+
+      setIsFormulating(true);
+      try {
+        const output = await executeCommand(cmd, cmdArgs, { mode, effort });
+        onProgress({ type: 'stream', chunk: output, isSystem: true });
+        onProgress({ type: 'done' });
+      } catch (err) {
+        const output = err.message.includes('Unknown command')
+          ? "Unknown command: /" + cmd + ". Type /help for available commands."
+          : "Error: " + err.message;
+        onProgress({ type: 'stream', chunk: output, isSystem: true });
+        onProgress({ type: 'done' });
+      } finally {
+        setIsFormulating(false);
+      }
+      return;
+    }
+
     const userMessage = { role: 'user', text, mode };
     setMessages((prev) => [...prev, userMessage]);
-
-    if (runAgentWrapper) {
       setIsFormulating(true);
       try {
         await runAgentWrapper({
@@ -121,7 +144,7 @@ export const App = ({ defaultProvider, language, runAgentWrapper, onExit, versio
 
   return html`
     <${Box} flexDirection="column" height=${height} width="100%">
-      
+
       <${Box} position="absolute" top=${0} right=${2}>
         <${Text} color=${theme.colors.dim}>Nythros v${version}<//>
       <//>
@@ -136,7 +159,7 @@ export const App = ({ defaultProvider, language, runAgentWrapper, onExit, versio
           <${ChatView} messages=${messages} maxHeight=${height - 5} lastUsage=${lastUsage} />
         <//>
       `}
-      
+
       ${!isEmpty && isFormulating ? html`
         <${Box} paddingLeft=${2} marginBottom=${0}>
           <${ThinkingIndicator} />
@@ -147,25 +170,25 @@ export const App = ({ defaultProvider, language, runAgentWrapper, onExit, versio
           <${Text} color=${theme.colors.toolText}>⚡ ${toast}<//>
         <//>
       ` : null}
-      
+
       <${Box} flexDirection="column" marginTop=${isEmpty ? 0 : 1}>
         ${isEmpty ? html`
           <${Box} paddingX=${2} marginBottom=${0}>
             <${Text} color=${theme.colors.dim}>Tips :<//>
           <//>
         ` : null}
-        
-        <${InputBox} 
-          onSubmit=${handleSubmit} 
-          mode=${mode} 
-          isFormulating=${isFormulating} 
+
+        <${InputBox}
+          onSubmit=${handleSubmit}
+          mode=${mode}
+          isFormulating=${isFormulating}
           modelName=${defaultProvider?.model || 'MANHATTAN'}
           provider="Provider"
           effort=${effort}
           onEffortChange=${setEffort}
         />
       <//>
-      
+
       ${isEmpty ? html`
         <${Box} justifyContent="center" width="100%" marginTop=${0} marginBottom=${1}>
           <${Text} color=${theme.colors.dim}>Developed by Omnivora<//>

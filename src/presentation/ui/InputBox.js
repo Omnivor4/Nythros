@@ -257,14 +257,7 @@ export const InputBox = ({ onSubmit, mode, modelName, provider, isFormulating, e
               <${Text} color=${theme.colors.khaki}>${modelName || 'Provider'}<//>
             <//>
             <${Box}>
-              ${pasteData
-                ? html`<${Text} color=${theme.colors.dim}>Enter untuk kirim · Esc untuk cancel<//>`
-                : html`
-                    <${Text} color=${theme.colors.dim}>Effort [<//>
-                    <${Text} color=${theme.colors.accent} bold>${effort}<//>
-                    <${Text} color=${theme.colors.dim}>]  Ctrl+E<//>
-                  `
-              }
+              <${Text} color=${theme.colors.dim}>[Tab] Mode: ${mode} · [Ctrl+E] Effort: ${effort}<//>
             <//>
           <//>
         <//>
