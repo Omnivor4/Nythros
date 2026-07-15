@@ -82,6 +82,8 @@ export const App = ({ defaultProvider, language, runAgentWrapper, onExit, versio
 
     const userMessage = { role: 'user', text, mode };
     setMessages((prev) => [...prev, userMessage]);
+
+    if (runAgentWrapper) {
       setIsFormulating(true);
       try {
         await runAgentWrapper({
