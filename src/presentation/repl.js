@@ -11,7 +11,7 @@ import { builtinTools } from '../tooling/tools.js';
 import { listSkills, installSkill, removeSkill } from '../tooling/skills/installer.js';
 import { readMemory } from '../memory/memory.js';
 import { readRecentArchive } from '../memory/archive.js';
-import { budgetStatus } from '../infrastructure/state/budgetGuard.js';
+import { budgetStatus, recordTokenUsage } from '../infrastructure/state/budgetGuard.js';
 import { getMcpTools, getActiveMcpClients } from '../infrastructure/mcp/mcpLoader.js';
 import { registerAllCommands, executeCommand } from '../tooling/slashRegistry.js';
 
@@ -64,7 +64,6 @@ export async function startRepl(language = "en") {
   await syncMcpServers();
 
   const agent = new Agent(config);
-  let sessionTotalUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
   let sessionModel = "";
   let lastMessages = [];
 
@@ -112,9 +111,8 @@ export async function startRepl(language = "en") {
     });
 
     if (result.usage) {
-      sessionTotalUsage.prompt_tokens += result.usage.prompt_tokens || 0;
-      sessionTotalUsage.completion_tokens += result.usage.completion_tokens || 0;
-      sessionTotalUsage.total_tokens += result.usage.total_tokens || 0;
+      // Consolidate ke budgetGuard — satu sumber kebenaran
+      recordTokenUsage(result.usage);
       if (onProgress) {
         onProgress({ type: "usage", usage: result.usage, model: sessionModel });
       }
@@ -142,6 +140,11 @@ export async function startRepl(language = "en") {
     process.exit(0);
   };
 
+  // === SIGINT handler khusus REPL ===
+  // Panggil onExit biar runShutdown jalan (save chat ke Obsidian, archive, dll)
+  const sigintHandler = () => { onExit(); };
+  process.on('SIGINT', sigintHandler);
+
   const app = render(
     html`<${App} defaultProvider=${"default"} language=${language} runAgentWrapper=${runAgentWrapper} onExit=${onExit} version=${version} />`,
     { exitOnCtrlC: false }
@@ -149,6 +152,8 @@ export async function startRepl(language = "en") {
 
   await app.waitUntilExit();
 
+  // Cleanup: remove SIGINT handler + restore terminal
+  process.removeListener('SIGINT', sigintHandler);
   process.stdout.write('\x1b[?1049l\x1b[?25h');
   process.exit(0);
 }

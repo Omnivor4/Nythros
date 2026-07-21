@@ -23,7 +23,7 @@ Sebelum beraksi, KAMU WAJIB:
 </THINKING_INSTRUCTION>
 `;
 
-export async function buildSystemPrompt({ memory, skillsSummary, todo, lastError, obsidianConnected, mode = "general" }) {
+export async function buildSystemPrompt({ memory, skillsSummary, todo, lastError, doctorWarnings, obsidianConnected, mode = "general" }) {
   const obsidianText = obsidianConnected
     ? "Vault user terhubung. Kamu bisa cari/baca/tulis note pakai tool obsidian_search, obsidian_read_note, obsidian_write_note."
     : "(Obsidian Vault belum di-configure)";
@@ -46,6 +46,7 @@ export async function buildSystemPrompt({ memory, skillsSummary, todo, lastError
     .replace("{{SKILLS_SUMMARY}}", skillsSummary || "(belum ada skill)")
     .replace("{{TODO_CAPSULE}}", todo || "(belum ada todo)")
     .replace("{{LAST_ERROR}}", lastError || "")
+    .replace("{{DOCTOR_WARNINGS}}", doctorWarnings || "")
     .replace("{{OBSIDIAN_VAULT}}", obsidianText)
     .replace("{{THINKING_INSTRUCTION}}", thinkingInstruction);
 

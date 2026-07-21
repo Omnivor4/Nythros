@@ -150,14 +150,23 @@ export function loadConfig() {
   }
 }
 
+// Mutex sederhana untuk mencegah race condition saat multiple save
 let configLock = Promise.resolve();
 
-// Bug 27: Config Mutex Missing
+async function withConfigLock(fn) {
+  const currentLock = configLock;
+  let release;
+  configLock = new Promise(resolve => { release = resolve; });
+  await currentLock;
+  try {
+    return await fn();
+  } finally {
+    if (release) release();
+  }
+}
+
 export function saveConfig(newConfig) {
   const cfgPath = CONFIG_PATH;
-  // Since saveConfig is often called synchronously, we use fs.writeFileSync directly.
-  // But wait, the issue is multiple CLI instances or async writes.
-  // We'll queue it if possible, but for simplicity, we just use sync fs (atomic in JS single thread).
   const current = readRawConfigOrEmpty();
   
   // To ensure newConfig gets default fields if they are missing in current,
@@ -178,6 +187,13 @@ export function saveConfig(newConfig) {
     // Ignore error on Windows
   }
   return merged;
+}
+
+// Async version untuk dipanggil dari concurrent context
+export async function saveConfigAsync(newConfig) {
+  return withConfigLock(() => {
+    return Promise.resolve(saveConfig(newConfig));
+  });
 }
 
 export { CONFIG_PATH };

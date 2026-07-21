@@ -12,6 +12,8 @@ const TIPS = [
   { icon: '⌨', text: 'Paste path gambar (.png/.jpg) → auto-jadi [Image: ...]' },
 
   // Features
+  { icon: '🛠', text: '/debug — dump lengkap config, MCP, env vars buat troubleshooting' },
+  { icon: '🛠', text: '/doctor — jalanin diagnostic ngecek config, endpoint, dan project' },
   { icon: '🛠', text: '/tools — lihat semua tool yang aktif sesi ini' },
   { icon: '🛠', text: '/skill add <repo> — install skill baru dari GitHub' },
   { icon: '🛠', text: '/memory — lihat apa yang Nythros ingat di project ini' },

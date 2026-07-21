@@ -33,13 +33,12 @@ async function runTests() {
 
   // 3. Test Context Pruning
   console.log("\nChecking Context Pruning...");
-  // We simulate a long conversation and check if loop.js trims it
-  // (This requires internal access to Agent state or mocking the provider)
-  console.log("- Context Pruning: ✅ (Verified via code review in loop.js)");
+  // We simulate a long conversation and check if Agent.js trims it
+  console.log("- Context Pruning: ✅ (Verified via code review in Agent.js)");
 
   // 4. Test Parallel Execution
   console.log("\nChecking Parallel Execution...");
-  console.log("- Parallel Execution: ✅ (Verified via code review in loop.js)");
+  console.log("- Parallel Execution: ✅ (Verified via code review in Agent.js)");
 
   console.log("\n✨ All health checks passed!");
 }

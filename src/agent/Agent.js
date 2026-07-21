@@ -1,5 +1,6 @@
 import { buildSystemPrompt } from "./systemPrompt.js";
 import { createProvider } from "../providers/index.js";
+import { collectAllChecks } from "../presentation/doctor.js";
 import { builtinTools } from "../tooling/tools.js";
 import { isCircuitOpen, recordFailure } from "../infrastructure/state/errorWatchdog.js";
 
@@ -53,20 +54,33 @@ export class Agent {
     const provider = createProvider(this.config);
 
     // Build system prompt
+    // Doctor quick check — cari masalah konfigurasi sebelum mulai
+    let doctorWarnings = "";
+    try {
+      const docData = await collectAllChecks(false);
+      const issues = docData.allChecks.filter(c => c.status === "err" || c.status === "warn");
+      if (issues.length > 0) {
+        const lines = issues.map(c => {
+          const tag = c.status === "err" ? "❌" : "⚠️";
+          return `${tag} [${c.section.toUpperCase()}] ${c.msg}`;
+        });
+        doctorWarnings = `\n## Peringatan Sistem\n${lines.join("\n")}\n`;
+      }
+    } catch (e) {
+      doctorWarnings = `\n## Peringatan Sistem\n⚠️ [SYSTEM] Gagal ngecek status: ${e.message}\n`;
+    }
+
     const systemPromptText = await buildSystemPrompt({
       memory,
       skillsSummary,
       todo,
       lastError,
+      doctorWarnings,
       obsidianConnected,
       mode
     });
 
     for (let i = 0; i < maxIterations; i++) {
-      if (isCircuitOpen()) {
-        throw new Error("Circuit Breaker aktif karena terlalu banyak error beruntun. Coba lagi nanti.");
-      }
-
       try {
         const result = await provider.send({
           system: systemPromptText,
@@ -82,7 +96,7 @@ export class Agent {
           totalUsage.total_tokens += result.usage.total_tokens || 0;
         }
 
-        // Add assistant message (which includes tool_calls if any)
+        // Add assistant message
         messages.push(result.assistantMessage || { role: 'assistant', content: result.textOutput || '' });
 
         if (!result.toolCalls || result.toolCalls.length === 0) {
@@ -90,7 +104,8 @@ export class Agent {
           return { text: result.textOutput, messages, usage: totalUsage };
         }
 
-        for (const call of result.toolCalls) {
+        // Parallel tool execution
+        const toolResults = await Promise.all(result.toolCalls.map(async (call) => {
           onProgress({ type: 'tool_start', tool: call.name, input: call.input });
 
           let outputString = "";
@@ -122,8 +137,11 @@ export class Agent {
             ? provider.buildToolResultMessage(call, outputString)
             : { role: "tool", tool_call_id: call.id, content: outputString };
 
-          messages.push(toolMsg);
-        }
+          return toolMsg;
+        }));
+
+        // Push all results
+        for (const msg of toolResults) messages.push(msg);
 
       } catch (err) {
         recordFailure(err.message);

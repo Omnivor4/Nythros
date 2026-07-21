@@ -8,6 +8,8 @@ import path from 'node:path';
 
 const SLASH_COMMANDS = [
   { name: '/help', desc: 'Show available slash commands' },
+  { name: '/doctor', desc: 'Run diagnostic checks (equivalent to nythros doctor)' },
+  { name: '/debug', desc: 'Full debug dump (config, MCP, env)' },
   { name: '/skill', desc: 'Manage GitHub skills' },
   { name: '/config', desc: 'Show Nythros configuration' },
   { name: '/memory', desc: 'View current project memory' },

@@ -23,6 +23,8 @@ export function recordTokenUsage(usage) {
   }
 }
 
+// Hapus duplikasi: _resetBudgetForTest adalah satu-satunya fungsi reset
+
 export function budgetStatus() {
   const config = loadConfig();
   // Safe default to 300,000 if not present

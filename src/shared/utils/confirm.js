@@ -47,6 +47,6 @@ export async function askConfirmation(message) {
     });
   });
 }
-let confirmMode = "block";
+let confirmMode = "ask";
 export function setConfirmMode(mode) { confirmMode = mode; }
 export function getConfirmMode() { return confirmMode; }

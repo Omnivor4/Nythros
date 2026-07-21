@@ -36,6 +36,7 @@ that is not available, say so honestly.
 
 ## Alerts
 {{LAST_ERROR}}
+{{DOCTOR_WARNINGS}}
 
 ## Language
 {{LANGUAGE_INSTRUCTION}}

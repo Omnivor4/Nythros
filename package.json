@@ -11,6 +11,9 @@
   },
   "scripts": {
     "start": "node bin/nythros.js",
+    "test": "node tests/config.test.js && node tests/tools.test.js && node tests/errorWatchdog.test.js && node tests/openaiCompatible.test.js && node tests/fallbackProvider.test.js && node tests/providerIntegration.test.js && node tests/memory/archive.test.js && node tests/doctor.test.js && node tests/systemPrompt.test.js && node tests/agent.integration.test.js && node tests/doctor-warnings-cold.test.js",
+    "test:unit": "node tests/config.test.js && node tests/tools.test.js && node tests/errorWatchdog.test.js",
+    "test:provider": "node tests/openaiCompatible.test.js && node tests/fallbackProvider.test.js && node tests/providerIntegration.test.js",
     "generate-logo": "python3 scripts/generate_logo.py BG.png --width 20 --height 6 --output src/ui/logo.js",
     "preview-logo": "python3 scripts/generate_logo.py BG.png --width 20 --height 6 --preview"
   },

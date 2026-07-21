@@ -31,17 +31,87 @@ export async function syncMcpServers() {
         await client.connect(srv.name, cmd, args);
         activeMcpClients.set(srv.name, client);
       } catch (err) {
-        // just log and continue, don't crash
+        console.warn(`[MCP] Gagal konek ke server "${srv.name}": ${err.message}`);
         continue;
       }
     }
-    
+  }
+
+  // Reuse refreshMcpTools untuk listing tools dari semua server aktif
+  cachedMcpTools = [];
+  await refreshMcpTools();
+  return cachedMcpTools;
+}
+
+export function getMcpTools() {
+  return cachedMcpTools;
+}
+
+export function getActiveMcpClients() {
+  return activeMcpClients;
+}
+
+export async function connectMcpServer(name, commandStr) {
+  // disconnect existing if any
+  const existing = activeMcpClients.get(name);
+  if (existing) {
+    existing.disconnect();
+    activeMcpClients.delete(name);
+  }
+
+  const client = new MCPClient();
+  const match = commandStr.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+  const parts = match.map(p => p.replace(/^"|"$/g, ""));
+  const cmd = parts[0];
+  const args = parts.slice(1);
+  await client.connect(name, cmd, args);
+  activeMcpClients.set(name, client);
+
+  // Refresh cached tools
+  await refreshMcpTools();
+  return true;
+}
+
+export async function disconnectMcpServer(name) {
+  const client = activeMcpClients.get(name);
+  if (!client) return false;
+  client.disconnect();
+  activeMcpClients.delete(name);
+
+  // Hapus tools dari server ini
+  cachedMcpTools = cachedMcpTools.filter(t => !t.name.startsWith(`mcp_${name}_`));
+  return true;
+}
+
+export function persistMcpToConfig(name, command) {
+  // Dynamic import biar nggak circular dependency
+  import('../../shared/config.js').then(({ loadConfig, saveConfig }) => {
+    const cfg = loadConfig();
+    cfg.mcpServers = cfg.mcpServers || [];
+    if (!cfg.mcpServers.some(s => s.name === name)) {
+      cfg.mcpServers.push({ name, command });
+      saveConfig(cfg);
+    }
+  }).catch(() => {});
+}
+
+export function removeMcpFromConfig(name) {
+  import('../../shared/config.js').then(({ loadConfig, saveConfig }) => {
+    const cfg = loadConfig();
+    cfg.mcpServers = (cfg.mcpServers || []).filter(s => s.name !== name);
+    saveConfig(cfg);
+  }).catch(() => {});
+}
+
+async function refreshMcpTools() {
+  const newTools = [];
+  for (const [srvName, client] of activeMcpClients) {
     try {
       const toolsList = await client.listTools();
       for (const t of toolsList) {
         newTools.push({
-          name: `mcp_${srv.name}_${t.name}`,
-          description: t.description || `Tool ${t.name} from MCP server ${srv.name}`,
+          name: `mcp_${srvName}_${t.name}`,
+          description: t.description || `Tool ${t.name} from MCP server ${srvName}`,
           input_schema: t.inputSchema,
           execute: async (input) => {
             try {
@@ -54,17 +124,8 @@ export async function syncMcpServers() {
         });
       }
     } catch (err) {
-      // ignore
+      console.warn(`[MCP] Gagal refresh tools dari "${srvName}": ${err.message}`);
     }
   }
   cachedMcpTools = newTools;
-  return cachedMcpTools;
-}
-
-export function getMcpTools() {
-  return cachedMcpTools;
-}
-
-export function getActiveMcpClients() {
-  return activeMcpClients;
 }
