@@ -96,8 +96,9 @@ const DEFAULT_CONFIG = {
 };
 
 function deepMerge(target, source) {
-  // Bug 26: DeepMerge nested array bug
   if (Array.isArray(target) && Array.isArray(source)) {
+    // Empty source array means 'clear': return empty array
+    if (source.length === 0) return [];
     const output = [...target];
     source.forEach((item, index) => {
       if (typeof output[index] === 'undefined') {
