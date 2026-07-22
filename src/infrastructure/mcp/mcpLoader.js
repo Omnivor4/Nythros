@@ -1,4 +1,4 @@
-import { loadConfig } from '../../shared/config.js';
+import { loadConfig, saveConfig } from '../../shared/config.js';
 import { MCPClient } from '../mcp/client.js';
 
 const activeMcpClients = new Map();
@@ -135,27 +135,18 @@ export async function disconnectMcpServer(name) {
 }
 
 export function persistMcpToConfig(name, command) {
-  // Dynamic import biar nggak circular dependency
-  import('../../shared/config.js')
-    .then(({ loadConfig, saveConfig }) => {
-      const cfg = loadConfig();
-      cfg.mcpServers = cfg.mcpServers || [];
-      if (!cfg.mcpServers.some((s) => s.name === name)) {
-        cfg.mcpServers.push({ name, command });
-        saveConfig(cfg);
-      }
-    })
-    .catch(() => {});
+  const cfg = loadConfig();
+  cfg.mcpServers = cfg.mcpServers || [];
+  if (!cfg.mcpServers.some((s) => s.name === name)) {
+    cfg.mcpServers.push({ name, command });
+    saveConfig(cfg);
+  }
 }
 
 export function removeMcpFromConfig(name) {
-  import('../../shared/config.js')
-    .then(({ loadConfig, saveConfig }) => {
-      const cfg = loadConfig();
-      cfg.mcpServers = (cfg.mcpServers || []).filter((s) => s.name !== name);
-      saveConfig(cfg);
-    })
-    .catch(() => {});
+  const cfg = loadConfig();
+  cfg.mcpServers = (cfg.mcpServers || []).filter((s) => s.name !== name);
+  saveConfig(cfg);
 }
 
 async function refreshMcpTools() {

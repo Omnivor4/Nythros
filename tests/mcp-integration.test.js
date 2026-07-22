@@ -42,10 +42,22 @@ async function testAsync(name, fn) {
 
 console.log('\n🧪 MCP Integration Tests\n');
 
-// ── Setup: MCP server script + .cmd shim ─────────────────────
+// ── Setup: MCP server script + node executable ─────────────────
 const TMP = os.tmpdir();
 const MCP_SERVER_PATH = path.join(TMP, 'nythros-mcp-test-server.js');
-const NODE_SHIM_PATH = path.join(TMP, 'nythros-node-shim.cmd');
+
+// Di Windows: .cmd shim untuk handle path-with-spaces
+// Di Linux: langsung pake process.execPath
+const NODE_EXEC =
+  process.platform === 'win32'
+    ? (() => {
+        const shim = path.join(TMP, 'nythros-node-shim.cmd');
+        if (!fs.existsSync(shim)) {
+          fs.writeFileSync(shim, `@"${process.execPath}" %*\r\n`, 'utf-8');
+        }
+        return shim;
+      })()
+    : process.execPath;
 
 // Minimal MCP server — responses via JSON-RPC over stdin/stdout
 const MCP_SERVER_SCRIPT = `
@@ -93,10 +105,6 @@ const MCP_SILENT_PATH = path.join(TMP, 'nythros-mcp-silent-server.js');
 // Write files
 fs.writeFileSync(MCP_SERVER_PATH, MCP_SERVER_SCRIPT, 'utf-8');
 fs.writeFileSync(MCP_SILENT_PATH, MCP_SILENT_SERVER_SCRIPT, 'utf-8');
-if (!fs.existsSync(NODE_SHIM_PATH)) {
-  // .cmd shim avoids Windows path-with-spaces issue with shell: true
-  fs.writeFileSync(NODE_SHIM_PATH, `@"${process.execPath}" %*\r\n`, 'utf-8');
-}
 
 // ── Modules already imported at top level ────────────────────
 
@@ -115,7 +123,7 @@ test('0. MCPClient: class can be imported', () => {
 await testAsync('1. MCPClient: connect to inline MCP server', async () => {
   const client = new MCPClient();
   try {
-    await client.connect('test-server', NODE_SHIM_PATH, [MCP_SERVER_PATH]);
+    await client.connect('test-server', NODE_EXEC, [MCP_SERVER_PATH]);
     assert.ok(client.proc, 'Process harus ada');
     assert.ok(client.proc.pid > 0, 'PID harus valid');
     assert.equal(client.pendingRequests.size, 0, 'Pending requests harus 0 setelah connect');
@@ -128,6 +136,11 @@ await testAsync('2. MCPClient: connect with invalid command rejects', async () =
   const client = new MCPClient();
   try {
     await client.connect('bad-server', 'nonexistent-command-xyz-999', []);
+    // On Win32, kill the bad-server process that might still be running
+    // (CI stderr log showed reconnect attempts for bad-server)
+    if (client.proc) {
+      client.disconnect();
+    }
     // On Windows, spawn may throw synchronously (caught by connect's try/catch)
     assert.ok(true, 'Error handled (sync or async)');
   } catch (err) {
@@ -143,7 +156,7 @@ await testAsync('2. MCPClient: connect with invalid command rejects', async () =
 
 await testAsync('3. MCPClient: listTools returns tools', async () => {
   const client = new MCPClient();
-  await client.connect('tools-server', NODE_SHIM_PATH, [MCP_SERVER_PATH]);
+  await client.connect('tools-server', NODE_EXEC, [MCP_SERVER_PATH]);
   try {
     const tools = await client.listTools();
     assert.equal(tools.length, 2, 'Harus ada 2 tools');
@@ -157,7 +170,7 @@ await testAsync('3. MCPClient: listTools returns tools', async () => {
 
 await testAsync('4. MCPClient: callTool invokes tool', async () => {
   const client = new MCPClient();
-  await client.connect('call-server', NODE_SHIM_PATH, [MCP_SERVER_PATH]);
+  await client.connect('call-server', NODE_EXEC, [MCP_SERVER_PATH]);
   try {
     const result = await client.callTool('echo', { text: 'Hello MCP!' });
     assert.ok(result.content, 'Result harus punya content');
@@ -169,7 +182,7 @@ await testAsync('4. MCPClient: callTool invokes tool', async () => {
 
 await testAsync('5. MCPClient: callTool with numeric args', async () => {
   const client = new MCPClient();
-  await client.connect('add-server', NODE_SHIM_PATH, [MCP_SERVER_PATH]);
+  await client.connect('add-server', NODE_EXEC, [MCP_SERVER_PATH]);
   try {
     const result = await client.callTool('add', { a: 5, b: 3 });
     assert.ok(result.content[0].text.includes('8'), `5+3 harus 8: ${result.content[0].text}`);
@@ -180,7 +193,7 @@ await testAsync('5. MCPClient: callTool with numeric args', async () => {
 
 await testAsync('6. MCPClient: handles server error response', async () => {
   const client = new MCPClient();
-  await client.connect('err-server', NODE_SHIM_PATH, [MCP_SERVER_PATH]);
+  await client.connect('err-server', NODE_EXEC, [MCP_SERVER_PATH]);
   try {
     await client.callTool('error_tool', {});
     assert.fail('Should have rejected');
@@ -193,7 +206,7 @@ await testAsync('6. MCPClient: handles server error response', async () => {
 
 await testAsync('7. MCPClient: handles unknown tool error', async () => {
   const client = new MCPClient();
-  await client.connect('unk-server', NODE_SHIM_PATH, [MCP_SERVER_PATH]);
+  await client.connect('unk-server', NODE_EXEC, [MCP_SERVER_PATH]);
   try {
     await client.callTool('nonexistent_tool', {});
     assert.fail('Should have rejected');
@@ -206,7 +219,7 @@ await testAsync('7. MCPClient: handles unknown tool error', async () => {
 
 await testAsync('8. MCPClient: disconnect clears state', async () => {
   const client = new MCPClient();
-  await client.connect('disc-server', NODE_SHIM_PATH, [MCP_SERVER_PATH]);
+  await client.connect('disc-server', NODE_EXEC, [MCP_SERVER_PATH]);
   assert.ok(client.proc.pid > 0, 'PID sebelum disconnect');
   client.disconnect();
   assert.equal(client.proc, null, 'Proc harus null setelah disconnect');
@@ -215,7 +228,7 @@ await testAsync('8. MCPClient: disconnect clears state', async () => {
 
 await testAsync('9. MCPClient: can call listTools twice', async () => {
   const client = new MCPClient();
-  await client.connect('multi-server', NODE_SHIM_PATH, [MCP_SERVER_PATH]);
+  await client.connect('multi-server', NODE_EXEC, [MCP_SERVER_PATH]);
   try {
     const tools1 = await client.listTools();
     const tools2 = await client.listTools();
@@ -283,7 +296,7 @@ await testAsync('13. MCP Loader: removeMcpFromConfig removes server', async () =
 
 await testAsync('14. MCPClient: _request timeout rejects after timeoutMs', async () => {
   const client = new MCPClient();
-  await client.connect('timeout-server', NODE_SHIM_PATH, [MCP_SILENT_PATH]);
+  await client.connect('timeout-server', NODE_EXEC, [MCP_SILENT_PATH]);
   let start;
   try {
     start = Date.now();
@@ -313,7 +326,7 @@ await testAsync('14. MCPClient: _request timeout rejects after timeoutMs', async
 
 await testAsync('15. MCPClient: auto-reconnect on unexpected process exit', async () => {
   const client = new MCPClient({ maxRetries: 3, retryDelayMs: 200 });
-  await client.connect('auto-reconnect', NODE_SHIM_PATH, [MCP_SERVER_PATH]);
+  await client.connect('auto-reconnect', NODE_EXEC, [MCP_SERVER_PATH]);
 
   const events = [];
   client.on('reconnecting', (e) => events.push({ type: 'reconnecting', attempt: e.attempt }));
@@ -355,7 +368,7 @@ await testAsync('15. MCPClient: auto-reconnect on unexpected process exit', asyn
 
 await testAsync('16. MCPClient: NO auto-reconnect on intentional disconnect', async () => {
   const client = new MCPClient({ maxRetries: 3, retryDelayMs: 100 });
-  await client.connect('no-reconnect', NODE_SHIM_PATH, [MCP_SERVER_PATH]);
+  await client.connect('no-reconnect', NODE_EXEC, [MCP_SERVER_PATH]);
 
   let reconnectCalled = false;
   client.on('reconnecting', () => {
@@ -401,7 +414,7 @@ rl.on('line', line => {
   fs.writeFileSync(CRASH_PATH, CRASH_SERVER_SCRIPT, 'utf-8');
 
   const client = new MCPClient({ maxRetries: 3, retryDelayMs: 100 });
-  await client.connect('crash-test', NODE_SHIM_PATH, [CRASH_PATH]);
+  await client.connect('crash-test', NODE_EXEC, [CRASH_PATH]);
 
   const events = [];
   client.on('reconnecting', (e) => events.push({ type: 'reconnecting', attempt: e.attempt }));
@@ -467,7 +480,7 @@ await testAsync('18. MCPClient: proc.on(error) rejects connect with correct mess
 
   const client = new MCPClient();
   try {
-    await client.connect('error-proc', NODE_SHIM_PATH, [MCP_SERVER_PATH]);
+    await client.connect('error-proc', NODE_EXEC, [MCP_SERVER_PATH]);
     assert.fail('Harusnya reject karena proc error event');
   } catch (err) {
     const msg = err.message || String(err);
@@ -493,7 +506,7 @@ await testAsync(
   '19. MCP Loader: connectMcpServer sets status, tools; disconnectMcpServer cleans up',
   async () => {
     const name = 'loader-test';
-    const commandStr = `${NODE_SHIM_PATH} ${MCP_SERVER_PATH}`;
+    const commandStr = `${NODE_EXEC} ${MCP_SERVER_PATH}`;
 
     await mcpLoader.connectMcpServer(name, commandStr);
     assert.equal(
@@ -548,7 +561,7 @@ await testAsync(
   '20. MCP Loader: crash via connectMcpServer updates serverStatus via events',
   async () => {
     const name = 'loader-crash';
-    const commandStr = `${NODE_SHIM_PATH} ${MCP_SERVER_PATH}`;
+    const commandStr = `${NODE_EXEC} ${MCP_SERVER_PATH}`;
 
     try {
       await mcpLoader.connectMcpServer(name, commandStr);
@@ -601,7 +614,7 @@ await testAsync(
   '21. MCPClient: proc.on(exit) rejects pending requests with server exit error',
   async () => {
     const client = new MCPClient({ maxRetries: 0 }); // No auto-reconnect
-    await client.connect('exit-test', NODE_SHIM_PATH, [MCP_SILENT_PATH]);
+    await client.connect('exit-test', NODE_EXEC, [MCP_SILENT_PATH]);
 
     // Kirim request yang gak akan direspon (silent server ignores tools/list)
     const reqPromise = client.listTools();
@@ -641,7 +654,7 @@ await testAsync(
   '22. MCPClient: stdin.on(error) logs non-EPIPE errors via console.error',
   async () => {
     const client = new MCPClient();
-    await client.connect('stdin-test', NODE_SHIM_PATH, [MCP_SERVER_PATH]);
+    await client.connect('stdin-test', NODE_EXEC, [MCP_SERVER_PATH]);
 
     const originalConsoleError = console.error;
     const captured = [];
