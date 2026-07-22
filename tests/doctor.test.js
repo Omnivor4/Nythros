@@ -62,8 +62,13 @@ const origCwd = process.cwd();
 process.chdir(TMP_PROJECT_DIR);
 const doctor = await import('../src/presentation/doctor.js');
 const {
-  checkSystem, checkHomeDir, checkConfig, verifyEndpoint,
-  checkProjectDir, checkObservations, getSuggestions
+  checkSystem,
+  checkHomeDir,
+  checkConfig,
+  verifyEndpoint,
+  checkProjectDir,
+  checkObservations,
+  getSuggestions,
 } = doctor;
 process.chdir(origCwd);
 
@@ -115,17 +120,21 @@ test('checkHomeDir detects skill registry when present', () => {
   const hadIt = fs.existsSync(skillRegPath);
   const backup = hadIt ? fs.readFileSync(skillRegPath, 'utf-8') : null;
 
-  try { fs.writeFileSync(skillRegPath, '[]', 'utf-8'); } catch {}
+  try {
+    fs.writeFileSync(skillRegPath, '[]', 'utf-8');
+  } catch {}
 
   const result = checkHomeDir();
-  const hasSkillCheck = result.some(c => c.msg.includes('Skill registry'));
+  const hasSkillCheck = result.some((c) => c.msg.includes('Skill registry'));
   assert.ok(hasSkillCheck, 'Harusnya ada check skill registry');
 
   // Restore
   if (backup !== null) {
     fs.writeFileSync(skillRegPath, backup, 'utf-8');
   } else {
-    try { fs.unlinkSync(skillRegPath); } catch {}
+    try {
+      fs.unlinkSync(skillRegPath);
+    } catch {}
   }
 });
 
@@ -145,10 +154,15 @@ test('checkConfig returns err when endpoints is undefined', () => {
 
 test('checkConfig returns warn when endpoint fields empty', () => {
   const config = {
-    endpoints: [{
-      id: 'test', name: 'My Endpoint',
-      base_url: '', api_key: '', model: ''
-    }]
+    endpoints: [
+      {
+        id: 'test',
+        name: 'My Endpoint',
+        base_url: '',
+        api_key: '',
+        model: '',
+      },
+    ],
   };
   const result = checkConfig(config);
   assert.equal(result[0].status, 'warn');
@@ -158,12 +172,15 @@ test('checkConfig returns warn when endpoint fields empty', () => {
 
 test('checkConfig returns ok when endpoint is complete', () => {
   const config = {
-    endpoints: [{
-      id: 'main', name: 'Main',
-      base_url: 'https://api.example.com/v1',
-      api_key: 'sk-test-123',
-      model: 'gpt-4o'
-    }]
+    endpoints: [
+      {
+        id: 'main',
+        name: 'Main',
+        base_url: 'https://api.example.com/v1',
+        api_key: 'sk-test-123',
+        model: 'gpt-4o',
+      },
+    ],
   };
   const result = checkConfig(config);
   assert.equal(result[0].status, 'ok');
@@ -173,20 +190,24 @@ test('checkConfig returns ok when endpoint is complete', () => {
 
 test('checkConfig returns ok for routing section', () => {
   const config = {
-    endpoints: [{
-      id: 'main', name: 'Main',
-      base_url: 'https://api.example.com/v1',
-      api_key: 'sk-test', model: 'gpt-4o'
-    }],
+    endpoints: [
+      {
+        id: 'main',
+        name: 'Main',
+        base_url: 'https://api.example.com/v1',
+        api_key: 'sk-test',
+        model: 'gpt-4o',
+      },
+    ],
     routing: {
       default_model: 'main',
       fast_model: 'main',
       code_model: 'main',
-      vision_model: 'main'
-    }
+      vision_model: 'main',
+    },
   };
   const result = checkConfig(config);
-  const routingCheck = result.find(c => c.msg.includes('Routing'));
+  const routingCheck = result.find((c) => c.msg.includes('Routing'));
   assert.ok(routingCheck, 'Harusnya ada routing check');
   assert.equal(routingCheck.status, 'ok');
 });
@@ -194,9 +215,15 @@ test('checkConfig returns ok for routing section', () => {
 test('checkConfig handles multiple endpoints with mixed status', () => {
   const config = {
     endpoints: [
-      { id: 'a', name: 'Endpoint A', base_url: 'https://a.com/v1', api_key: 'key-a', model: 'model-a' },
-      { id: 'b', name: 'Endpoint B', base_url: '', api_key: '', model: '' }
-    ]
+      {
+        id: 'a',
+        name: 'Endpoint A',
+        base_url: 'https://a.com/v1',
+        api_key: 'key-a',
+        model: 'model-a',
+      },
+      { id: 'b', name: 'Endpoint B', base_url: '', api_key: '', model: '' },
+    ],
   };
   const result = checkConfig(config);
   assert.equal(result.length, 2, 'Harusnya 2 endpoint checks');
@@ -210,7 +237,7 @@ test('checkProjectDir returns project-specific checks when PROJECT_DIR differs f
   // PROJECT_DIR sudah di-compute saat import (cwd = TMP_PROJECT_DIR)
   // PROJECT_DIR = TMP_PROJECT_NYTHROS, HOME_DIR = ~/.nythros → beda!
   const result = checkProjectDir();
-  const hasProjectDir = result.some(c => c.msg.includes('Project dir'));
+  const hasProjectDir = result.some((c) => c.msg.includes('Project dir'));
   assert.ok(hasProjectDir, 'Harusnya ada check project dir');
   assert.ok(result[0].status === 'ok', 'Status harus ok');
 });
@@ -222,14 +249,14 @@ test('checkProjectDir returns archive info when archive.jsonl exists', () => {
     timestamp: new Date().toISOString(),
     summary: `Entry ${i + 1}`,
     key_points: [],
-    message_count: i
+    message_count: i,
   }));
-  const content = data.map(d => JSON.stringify(d)).join('\n') + '\n';
+  const content = data.map((d) => JSON.stringify(d)).join('\n') + '\n';
   fs.writeFileSync(ap, content, 'utf-8');
 
   // Panggil fungsi beneran — PROJECT_DIR = TMP_PROJECT_NYTHROS dari import
   const result = checkProjectDir();
-  const archiveCheck = result.find(c => c.msg.includes('Archive:'));
+  const archiveCheck = result.find((c) => c.msg.includes('Archive:'));
   assert.ok(archiveCheck, 'Harusnya ada archive check');
   assert.ok(archiveCheck.msg.includes('3 entri'), 'Harusnya detect 3 entries');
   assert.ok(archiveCheck.status === 'ok', 'Status harus ok');
@@ -240,10 +267,12 @@ test('checkProjectDir detects MEMORY.md when present', () => {
   fs.writeFileSync(memPath, '# Memories', 'utf-8');
 
   const result = checkProjectDir();
-  const memCheck = result.find(c => c.msg.includes('MEMORY.md'));
+  const memCheck = result.find((c) => c.msg.includes('MEMORY.md'));
   assert.ok(memCheck, 'Harusnya detect MEMORY.md');
 
-  try { fs.unlinkSync(memPath); } catch {}
+  try {
+    fs.unlinkSync(memPath);
+  } catch {}
 });
 
 // ── 5. checkObservations ─────────────────────────────────────
@@ -260,18 +289,20 @@ test('checkObservations detects observations when file exists', () => {
 
   try {
     const data = Array.from({ length: 5 }, (_, i) => ({ obs: `test ${i}` }));
-    fs.writeFileSync(obsPath, data.map(d => JSON.stringify(d)).join('\n') + '\n', 'utf-8');
+    fs.writeFileSync(obsPath, data.map((d) => JSON.stringify(d)).join('\n') + '\n', 'utf-8');
   } catch {}
 
   const result = checkObservations();
-  const hasObsCheck = result.some(c => c.msg.includes('Observations') && c.msg.includes('5'));
+  const hasObsCheck = result.some((c) => c.msg.includes('Observations') && c.msg.includes('5'));
   assert.ok(hasObsCheck, 'Harusnya detect 5 observations');
 
   // Restore
   if (backup !== null) {
     fs.writeFileSync(obsPath, backup, 'utf-8');
   } else {
-    try { fs.unlinkSync(obsPath); } catch {}
+    try {
+      fs.unlinkSync(obsPath);
+    } catch {}
   }
 });
 
@@ -282,7 +313,7 @@ const mockEndpoint = (server, path = '') => {
   const addr = server.address();
   return {
     base_url: `http://localhost:${addr.port}${path}`,
-    api_key: 'sk-test'
+    api_key: 'sk-test',
   };
 };
 
@@ -290,8 +321,8 @@ testAsync('verifyEndpoint returns ok when /models returns 200', async () => {
   const server = await createMockServer(200, {
     data: [
       { id: 'gpt-4o', object: 'model' },
-      { id: 'claude-sonnet-4', object: 'model' }
-    ]
+      { id: 'claude-sonnet-4', object: 'model' },
+    ],
   });
 
   const ep = mockEndpoint(server);
@@ -306,7 +337,7 @@ testAsync('verifyEndpoint returns ok when /models returns 200', async () => {
 
 testAsync('verifyEndpoint returns err on HTTP 401', async () => {
   const server = await createMockServer(401, {
-    error: { message: 'Invalid API key', code: 'invalid_api_key' }
+    error: { message: 'Invalid API key', code: 'invalid_api_key' },
   });
 
   const ep = mockEndpoint(server);
@@ -321,7 +352,7 @@ testAsync('verifyEndpoint returns err on HTTP 401', async () => {
 
 testAsync('verifyEndpoint returns err on HTTP 500', async () => {
   const server = await createMockServer(500, {
-    error: { message: 'Internal server error' }
+    error: { message: 'Internal server error' },
   });
 
   const ep = mockEndpoint(server);
@@ -336,7 +367,6 @@ testAsync('verifyEndpoint returns err on HTTP 500', async () => {
 testAsync('verifyEndpoint returns err on timeout', async () => {
   const server = await createMockServer(200, { data: [] }, 500);
 
-  const ep = mockEndpoint(server);
   // Panggil dengan timeout 50ms — lebih cepet dari delay server 500ms
   // Tapi karena verifyEndpoint punya timeout internal 10.000ms,
   // kita nggak bisa test ini tanpa mock signal. Skip.
@@ -348,7 +378,7 @@ testAsync('verifyEndpoint returns err on ECONNREFUSED (port not listening)', asy
   // Port 1 — hampir pasti nggak ada service di semua platform
   const ep = {
     base_url: 'http://localhost:1/v1',
-    api_key: 'sk-test'
+    api_key: 'sk-test',
   };
 
   const start = Date.now();
@@ -366,10 +396,10 @@ testAsync('verifyEndpoint returns err on ECONNREFUSED (port not listening)', asy
 test('getSuggestions advises setup when no endpoints configured', () => {
   const checks = [
     { section: 'config', status: 'err', msg: 'Tidak ada endpoint' },
-    { section: 'system', status: 'ok', msg: 'Node.js v20' }
+    { section: 'system', status: 'ok', msg: 'Node.js v20' },
   ];
   const result = getSuggestions(checks);
-  const hasSetupSuggestion = result.some(s => s.includes('Belum ada endpoint'));
+  const hasSetupSuggestion = result.some((s) => s.includes('Belum ada endpoint'));
   assert.ok(hasSetupSuggestion, 'Harusnya saran setup endpoint');
   // Selalu ada doc link + bug report
   assert.equal(result.length, 3, '1 saran + 2 link = 3');
@@ -377,20 +407,20 @@ test('getSuggestions advises setup when no endpoints configured', () => {
 
 test('getSuggestions advises fill fields when endpoint incomplete', () => {
   const checks = [
-    { section: 'config', status: 'warn', msg: 'My EP: base_url kosong, api_key kosong' }
+    { section: 'config', status: 'warn', msg: 'My EP: base_url kosong, api_key kosong' },
   ];
   const result = getSuggestions(checks);
-  const hasFillSuggestion = result.some(s => s.includes('Endpoint belum lengkap'));
+  const hasFillSuggestion = result.some((s) => s.includes('Endpoint belum lengkap'));
   assert.ok(hasFillSuggestion, 'Harusnya saran isi field');
 });
 
 test('getSuggestions advises check connection when verify fails', () => {
   const checks = [
     { section: 'config', status: 'ok', msg: 'Main EP: https://example.com/v1 → gpt-4o' },
-    { section: 'verify', status: 'err', msg: 'https://example.com/v1 — HTTP 401' }
+    { section: 'verify', status: 'err', msg: 'https://example.com/v1 — HTTP 401' },
   ];
   const result = getSuggestions(checks);
-  const hasVerifySuggestion = result.some(s => s.includes('gagal diverifikasi'));
+  const hasVerifySuggestion = result.some((s) => s.includes('gagal diverifikasi'));
   assert.ok(hasVerifySuggestion, 'Harusnya saran cek koneksi');
 });
 
@@ -398,10 +428,10 @@ test('getSuggestions positivity when all good', () => {
   const checks = [
     { section: 'config', status: 'ok', msg: 'Main EP: https://example.com/v1 → gpt-4o' },
     { section: 'verify', status: 'ok', msg: 'https://example.com/v1 — 200 OK, 10 model' },
-    { section: 'system', status: 'ok', msg: 'Node.js v20' }
+    { section: 'system', status: 'ok', msg: 'Node.js v20' },
   ];
   const result = getSuggestions(checks);
-  const hasPositive = result.some(s => s.includes('Semua terlihat baik'));
+  const hasPositive = result.some((s) => s.includes('Semua terlihat baik'));
   assert.ok(hasPositive, 'Harusnya pesan positif');
   assert.equal(result.length, 3, '1 saran + 2 link = 3');
 });
@@ -409,26 +439,26 @@ test('getSuggestions positivity when all good', () => {
 test('getSuggestions limits to 5 suggestions max', () => {
   const checks = [
     { section: 'config', status: 'warn', msg: 'EP1: base_url kosong' },
-    { section: 'config', status: 'warn', msg: 'EP2: api_key kosong' }
+    { section: 'config', status: 'warn', msg: 'EP2: api_key kosong' },
   ];
   const result = getSuggestions(checks);
   assert.ok(result.length <= 5, 'Maksimal 5');
 });
 
 test('getSuggestions still includes doc links even with errors', () => {
-  const checks = [
-    { section: 'config', status: 'err', msg: 'Tidak ada endpoint' }
-  ];
+  const checks = [{ section: 'config', status: 'err', msg: 'Tidak ada endpoint' }];
   const result = getSuggestions(checks);
-  const hasDocLink = result.some(s => s.includes('Dokumentasi'));
-  const hasBugLink = result.some(s => s.includes('Lapor bug'));
+  const hasDocLink = result.some((s) => s.includes('Dokumentasi'));
+  const hasBugLink = result.some((s) => s.includes('Lapor bug'));
   assert.ok(hasDocLink, 'Harusnya ada link dokumentasi');
   assert.ok(hasBugLink, 'Harusnya ada link bug report');
 });
 
 // ── Cleanup ──────────────────────────────────────────────────
 process.chdir(origCwd);
-try { fs.rmSync(TMP_DIR, { recursive: true, force: true }); } catch {}
+try {
+  fs.rmSync(TMP_DIR, { recursive: true, force: true });
+} catch {}
 
 // Summary
 console.log(`\n📊 Hasil: ${passed} passed, ${failed} failed from ${passed + failed} tests\n`);

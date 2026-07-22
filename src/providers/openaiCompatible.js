@@ -5,7 +5,7 @@
 
 function toOpenAITools(tools) {
   return tools.map((t) => ({
-    type: "function",
+    type: 'function',
     function: {
       name: t.name,
       description: t.description,
@@ -18,13 +18,13 @@ export class OpenAICompatibleProvider {
   constructor({ apiKey, model, baseURL }) {
     this.apiKey = apiKey;
     this.model = model;
-    this.baseURL = baseURL.replace(/\/$/, "");
+    this.baseURL = baseURL.replace(/\/$/, '');
   }
 
   async verify() {
     try {
       const res = await fetch(`${this.baseURL}/models`, {
-        method: "GET",
+        method: 'GET',
         headers: {
           authorization: `Bearer ${this.apiKey}`,
         },
@@ -34,13 +34,13 @@ export class OpenAICompatibleProvider {
         throw new Error(`HTTP ${res.status}: ${errBody}`);
       }
     } catch (err) {
-      throw new Error(`Koneksi ke endpoint gagal: ${err.message}`);
+      throw new Error(`Koneksi ke endpoint gagal: ${err.message}`, { cause: err });
     }
   }
 
-  async send({ system, messages, tools, onProgress, effort = "Medium" }) {
-    const fullMessages = [{ role: "system", content: system }, ...messages];
-    const useStream = typeof onProgress === "function";
+  async send({ system, messages, tools, onProgress, effort = 'Medium' }) {
+    const fullMessages = [{ role: 'system', content: system }, ...messages];
+    const useStream = typeof onProgress === 'function';
 
     const body = {
       model: this.model,
@@ -51,11 +51,11 @@ export class OpenAICompatibleProvider {
       body.stream_options = { include_usage: true };
     }
 
-    if (effort === "Low") {
+    if (effort === 'Low') {
       body.max_tokens = 1024;
-    } else if (effort === "Medium") {
+    } else if (effort === 'Medium') {
       body.max_tokens = 4096;
-    } else if (effort === "High") {
+    } else if (effort === 'High') {
       body.max_tokens = 16384;
     }
 
@@ -63,7 +63,7 @@ export class OpenAICompatibleProvider {
     // reject an empty tools array or tool_choice without tools.
     if (tools && tools.length > 0) {
       body.tools = toOpenAITools(tools);
-      body.tool_choice = "auto";
+      body.tool_choice = 'auto';
     }
 
     // Timeout API calls (120s for streaming)
@@ -73,20 +73,23 @@ export class OpenAICompatibleProvider {
     let res;
     try {
       res = await fetch(`${this.baseURL}/chat/completions`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "content-type": "application/json",
+          'content-type': 'application/json',
           authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify(body),
-        signal: controller.signal
+        signal: controller.signal,
       });
     } catch (e) {
       if (e.name === 'AbortError') {
-        throw new Error("API call timed out after 60 detik.");
+        throw new Error('API call timed out after 60 detik.', { cause: e });
       }
-      if (e.name === 'TypeError' && e.message.includes("fetch")) {
-        throw new Error("Network error: Tidak bisa menyambung ke AI Gateway. Cek koneksi atau URL.");
+      if (e.name === 'TypeError' && e.message.includes('fetch')) {
+        throw new Error(
+          'Network error: Tidak bisa menyambung ke AI Gateway. Cek koneksi atau URL.',
+          { cause: e },
+        );
       }
       throw e;
     } finally {
@@ -108,21 +111,24 @@ export class OpenAICompatibleProvider {
       try {
         return await this._handleStream(res, onProgress);
       } catch (streamErr) {
-        throw new Error(`Streaming failed: ${streamErr.message}. Coba set stream: false di config.`);
+        throw new Error(
+          `Streaming failed: ${streamErr.message}. Coba set stream: false di config.`,
+          { cause: streamErr },
+        );
       }
     }
 
     const data = await res.json();
     const choice = data.choices?.[0];
     if (!choice) {
-      throw new Error("API returned empty choices array");
+      throw new Error('API returned empty choices array');
     }
     const msg = choice.message;
 
     const toolCalls = (msg.tool_calls ?? []).map((tc) => ({
       id: tc.id,
       name: tc.function.name,
-      input: JSON.parse(tc.function.arguments || "{}"),
+      input: JSON.parse(tc.function.arguments || '{}'),
     }));
 
     // Feature 5 & Bug 12: Extract token usage
@@ -130,17 +136,17 @@ export class OpenAICompatibleProvider {
 
     return {
       // dipush balik mentah-mentah ke `messages` di giliran berikutnya
-      assistantMessage: { role: "assistant", content: msg.content, tool_calls: msg.tool_calls },
+      assistantMessage: { role: 'assistant', content: msg.content, tool_calls: msg.tool_calls },
       toolCalls,
       // Bug 44: Dead Code Streaming (Removed SSE parser chunks entirely, simplified since stream: false)
-      textOutput: toolCalls.length === 0 ? msg.content ?? "" : null,
+      textOutput: toolCalls.length === 0 ? (msg.content ?? '') : null,
       usage,
     };
   }
 
   buildToolResultMessage(toolCall, outputString) {
     return {
-      role: "tool",
+      role: 'tool',
       tool_call_id: toolCall.id,
       content: outputString,
     };
@@ -149,9 +155,9 @@ export class OpenAICompatibleProvider {
   async _handleStream(res, onProgress) {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = "";
-    let fullContent = "";
-    let toolCallsAccumulator = {}; 
+    let buffer = '';
+    let fullContent = '';
+    let toolCallsAccumulator = {};
     let usage = null;
 
     while (true) {
@@ -159,16 +165,20 @@ export class OpenAICompatibleProvider {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
+      const lines = buffer.split('\n');
       buffer = lines.pop();
 
       for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
+        if (!line.startsWith('data: ')) continue;
         const data = line.slice(6).trim();
-        if (data === "[DONE]") continue;
+        if (data === '[DONE]') continue;
 
         let chunk;
-        try { chunk = JSON.parse(data); } catch { continue; }
+        try {
+          chunk = JSON.parse(data);
+        } catch {
+          continue;
+        }
 
         if (chunk.usage) {
           usage = chunk.usage;
@@ -179,44 +189,56 @@ export class OpenAICompatibleProvider {
 
         if (delta.content) {
           fullContent += delta.content;
-          onProgress({ type: "stream", chunk: delta.content, isSystem: false });
+          onProgress({ type: 'stream', chunk: delta.content, isSystem: false });
         }
 
         if (delta.tool_calls) {
           for (const tc of delta.tool_calls) {
             const idx = tc.index ?? 0;
             if (!toolCallsAccumulator[idx]) {
-              toolCallsAccumulator[idx] = { id: tc.id || "", name: tc.function?.name || "", arguments_str: "" };
+              toolCallsAccumulator[idx] = {
+                id: tc.id || '',
+                name: tc.function?.name || '',
+                arguments_str: '',
+              };
             }
             if (tc.id) toolCallsAccumulator[idx].id = tc.id;
             if (tc.function?.name) toolCallsAccumulator[idx].name = tc.function.name;
-            if (tc.function?.arguments) toolCallsAccumulator[idx].arguments_str += tc.function.arguments;
+            if (tc.function?.arguments)
+              toolCallsAccumulator[idx].arguments_str += tc.function.arguments;
           }
         }
       }
     }
 
     const toolCalls = Object.values(toolCallsAccumulator)
-      .filter(tc => tc.name)
-      .map(tc => ({
+      .filter((tc) => tc.name)
+      .map((tc) => ({
         id: tc.id,
         name: tc.name,
-        input: (() => { try { return JSON.parse(tc.arguments_str || "{}"); } catch { return {}; } })(),
+        input: (() => {
+          try {
+            return JSON.parse(tc.arguments_str || '{}');
+          } catch {
+            return {};
+          }
+        })(),
       }));
 
-    const rawToolCalls = toolCalls.length > 0
-      ? toolCalls.map(tc => ({
-          id: tc.id,
-          type: "function",
-          function: { name: tc.name, arguments: JSON.stringify(tc.input) }
-        }))
-      : undefined;
+    const rawToolCalls =
+      toolCalls.length > 0
+        ? toolCalls.map((tc) => ({
+            id: tc.id,
+            type: 'function',
+            function: { name: tc.name, arguments: JSON.stringify(tc.input) },
+          }))
+        : undefined;
 
     return {
       assistantMessage: {
-        role: "assistant",
+        role: 'assistant',
         content: fullContent || null,
-        tool_calls: rawToolCalls
+        tool_calls: rawToolCalls,
       },
       toolCalls,
       textOutput: toolCalls.length === 0 ? fullContent : null,

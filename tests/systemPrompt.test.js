@@ -56,13 +56,14 @@ const origCwd = process.cwd();
 test('PROMPT.md contains {{DOCTOR_WARNINGS}} placeholder', () => {
   const promptPath = path.join(__dirname, '..', 'PROMPT.md');
   const content = fs.readFileSync(promptPath, 'utf-8');
-  assert.ok(content.includes('{{DOCTOR_WARNINGS}}'),
-    'Harusnya ada {{DOCTOR_WARNINGS}} di PROMPT.md');
+  assert.ok(
+    content.includes('{{DOCTOR_WARNINGS}}'),
+    'Harusnya ada {{DOCTOR_WARNINGS}} di PROMPT.md',
+  );
   // Pastikan posisinya setelah {{LAST_ERROR}}
   const lastErrIdx = content.indexOf('{{LAST_ERROR}}');
   const doctorIdx = content.indexOf('{{DOCTOR_WARNINGS}}');
-  assert.ok(doctorIdx > lastErrIdx,
-    '{{DOCTOR_WARNINGS}} harus setelah {{LAST_ERROR}}');
+  assert.ok(doctorIdx > lastErrIdx, '{{DOCTOR_WARNINGS}} harus setelah {{LAST_ERROR}}');
 });
 
 // ── 2. buildSystemPrompt — dengan dan tanpa warnings ─────────
@@ -74,39 +75,43 @@ testAsync('buildSystemPrompt includes Peringatan Sistem when doctorWarnings prov
     skillsSummary: '',
     todo: '',
     lastError: '',
-    doctorWarnings: '\n## Peringatan Sistem\n❌ [HOME] Home dir tidak ditemukan\n⚠️ [CONFIG] api_key kosong\n',
+    doctorWarnings:
+      '\n## Peringatan Sistem\n❌ [HOME] Home dir tidak ditemukan\n⚠️ [CONFIG] api_key kosong\n',
     obsidianConnected: false,
     mode: 'general',
   });
 
-  assert.ok(output.includes('Peringatan Sistem'),
-    'Output harus mengandung Peringatan Sistem');
-  assert.ok(output.includes('❌ [HOME]'),
-    'Output harus mengandung error icon');
-  assert.ok(output.includes('⚠️ [CONFIG]'),
-    'Output harus mengandung warning icon');
-  assert.ok(output.includes('api_key kosong'),
-    'Output harus mengandung detail pesan');
+  assert.ok(output.includes('Peringatan Sistem'), 'Output harus mengandung Peringatan Sistem');
+  assert.ok(output.includes('❌ [HOME]'), 'Output harus mengandung error icon');
+  assert.ok(output.includes('⚠️ [CONFIG]'), 'Output harus mengandung warning icon');
+  assert.ok(output.includes('api_key kosong'), 'Output harus mengandung detail pesan');
 });
 
-testAsync('buildSystemPrompt does NOT include Peringatan Sistem when doctorWarnings empty', async () => {
-  const { buildSystemPrompt } = await import('../src/agent/systemPrompt.js');
+testAsync(
+  'buildSystemPrompt does NOT include Peringatan Sistem when doctorWarnings empty',
+  async () => {
+    const { buildSystemPrompt } = await import('../src/agent/systemPrompt.js');
 
-  const output = await buildSystemPrompt({
-    memory: 'test memory',
-    skillsSummary: '',
-    todo: '',
-    lastError: '',
-    doctorWarnings: '',
-    obsidianConnected: false,
-    mode: 'general',
-  });
+    const output = await buildSystemPrompt({
+      memory: 'test memory',
+      skillsSummary: '',
+      todo: '',
+      lastError: '',
+      doctorWarnings: '',
+      obsidianConnected: false,
+      mode: 'general',
+    });
 
-  assert.ok(!output.includes('Peringatan Sistem'),
-    'Output TIDAK boleh mengandung Peringatan Sistem');
-  assert.ok(!output.includes('❌ [HOME]'),
-    'Output TIDAK boleh mengandung error icon dari doctor');
-});
+    assert.ok(
+      !output.includes('Peringatan Sistem'),
+      'Output TIDAK boleh mengandung Peringatan Sistem',
+    );
+    assert.ok(
+      !output.includes('❌ [HOME]'),
+      'Output TIDAK boleh mengandung error icon dari doctor',
+    );
+  },
+);
 
 testAsync('buildSystemPrompt with undefined doctorWarnings (backward compat)', async () => {
   const { buildSystemPrompt } = await import('../src/agent/systemPrompt.js');
@@ -121,10 +126,14 @@ testAsync('buildSystemPrompt with undefined doctorWarnings (backward compat)', a
     mode: 'general',
   });
 
-  assert.ok(!output.includes('Peringatan Sistem'),
-    'Harusnya aman walau doctorWarnings nggak di-pass');
-  assert.ok(!output.includes('{{DOCTOR_WARNINGS}}'),
-    'Placeholder harus ke-replace, bukan muncul mentah');
+  assert.ok(
+    !output.includes('Peringatan Sistem'),
+    'Harusnya aman walau doctorWarnings nggak di-pass',
+  );
+  assert.ok(
+    !output.includes('{{DOCTOR_WARNINGS}}'),
+    'Placeholder harus ke-replace, bukan muncul mentah',
+  );
 });
 
 testAsync('buildSystemPrompt replaces all placeholders correctly', async () => {
@@ -147,8 +156,14 @@ testAsync('buildSystemPrompt replaces all placeholders correctly', async () => {
   assert.ok(!output.includes('{{LAST_ERROR}}'), '{{LAST_ERROR}} harus ke-replace');
   assert.ok(!output.includes('{{DOCTOR_WARNINGS}}'), '{{DOCTOR_WARNINGS}} harus ke-replace');
   assert.ok(!output.includes('{{OBSIDIAN_VAULT}}'), '{{OBSIDIAN_VAULT}} harus ke-replace');
-  assert.ok(!output.includes('{{THINKING_INSTRUCTION}}'), '{{THINKING_INSTRUCTION}} harus ke-replace');
-  assert.ok(!output.includes('{{LANGUAGE_INSTRUCTION}}'), '{{LANGUAGE_INSTRUCTION}} harus ke-replace');
+  assert.ok(
+    !output.includes('{{THINKING_INSTRUCTION}}'),
+    '{{THINKING_INSTRUCTION}} harus ke-replace',
+  );
+  assert.ok(
+    !output.includes('{{LANGUAGE_INSTRUCTION}}'),
+    '{{LANGUAGE_INSTRUCTION}} harus ke-replace',
+  );
 
   // Custom values harus muncul
   assert.ok(output.includes('custom memory'), 'Memory value harus muncul');
@@ -159,8 +174,7 @@ testAsync('buildSystemPrompt replaces all placeholders correctly', async () => {
 // ── 3. collectAllChecks(false) — sync-only, no network ───────
 testAsync('collectAllChecks(false) returns warnings when config empty', async () => {
   // Simulasi: pindah ke TMP_DIR tanpa config
-  const { collectAllChecks, checkHomeDir, checkConfig, checkSystem } =
-    await import('../src/presentation/doctor.js');
+  const { collectAllChecks } = await import('../src/presentation/doctor.js');
 
   const data = await collectAllChecks(false);
 
@@ -169,10 +183,10 @@ testAsync('collectAllChecks(false) returns warnings when config empty', async ()
   assert.ok(data.allChecks.length > 0, 'Harusnya ada check results');
 
   // Cek structure
-  const hasSystem = data.allChecks.some(c => c.section === 'system');
-  const hasHome = data.allChecks.some(c => c.section === 'home');
-  const hasConfig = data.allChecks.some(c => c.section === 'config');
-  const hasProject = data.allChecks.some(c => c.section === 'project');
+  const hasSystem = data.allChecks.some((c) => c.section === 'system');
+  const hasHome = data.allChecks.some((c) => c.section === 'home');
+  const hasConfig = data.allChecks.some((c) => c.section === 'config');
+  const hasProject = data.allChecks.some((c) => c.section === 'project');
 
   assert.ok(hasSystem, 'Harusnya ada system section');
   assert.ok(hasHome, 'Harusnya ada home section');
@@ -186,7 +200,7 @@ testAsync('collectAllChecks(false) does NOT verify endpoints (no network)', asyn
   const data = await collectAllChecks(false);
 
   // includeVerify=false → no verify checks
-  const hasVerify = data.allChecks.some(c => c.section === 'verify');
+  const hasVerify = data.allChecks.some((c) => c.section === 'verify');
   assert.ok(!hasVerify, 'Tidak boleh ada verify section (no network)');
 });
 
@@ -202,23 +216,21 @@ testAsync('collectAllChecks(false) returns suggestions', async () => {
 // ── 4. Agent.process mekanisme — verifikasi import & function ─
 test('Agent.js imports collectAllChecks from doctor.js', () => {
   const agentSource = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'agent', 'Agent.js'), 'utf-8'
+    path.join(__dirname, '..', 'src', 'agent', 'Agent.js'),
+    'utf-8',
   );
   assert.ok(
-    agentSource.includes("import { collectAllChecks } from"),
-    'Agent.js harus import collectAllChecks'
+    agentSource.includes('import { collectAllChecks } from'),
+    'Agent.js harus import collectAllChecks',
   );
   assert.ok(
-    agentSource.includes("collectAllChecks(false)"),
-    'Agent.js harus panggil collectAllChecks(false)'
+    agentSource.includes('collectAllChecks(false)'),
+    'Agent.js harus panggil collectAllChecks(false)',
   );
+  assert.ok(agentSource.includes('doctorWarnings'), 'Agent.js harus pake variabel doctorWarnings');
   assert.ok(
-    agentSource.includes("doctorWarnings"),
-    'Agent.js harus pake variabel doctorWarnings'
-  );
-  assert.ok(
-    agentSource.includes("## Peringatan Sistem"),
-    'Agent.js harus format warnings dengan ## Peringatan Sistem'
+    agentSource.includes('## Peringatan Sistem'),
+    'Agent.js harus format warnings dengan ## Peringatan Sistem',
   );
 });
 
@@ -231,7 +243,9 @@ testAsync('Agent class can be imported and instantiated', async () => {
 
 // ── Cleanup ──────────────────────────────────────────────────
 process.chdir(origCwd);
-try { fs.rmSync(TMP_DIR, { recursive: true, force: true }); } catch {}
+try {
+  fs.rmSync(TMP_DIR, { recursive: true, force: true });
+} catch {}
 
 // Tunggu semua async tests selesai
 await Promise.all(asyncTests);

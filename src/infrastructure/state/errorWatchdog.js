@@ -1,8 +1,8 @@
-import fs from "node:fs";
-import path from "node:path";
-import { PROJECT_DIR, ensureProjectDirs } from "../../shared/utils/paths.js";
+import fs from 'node:fs';
+import path from 'node:path';
+import { PROJECT_DIR, ensureProjectDirs } from '../../shared/utils/paths.js';
 
-const STATE_FILE = "error-state.json";
+const STATE_FILE = 'error-state.json';
 const MAX_CONSECUTIVE_FAILURES = 3;
 const WINDOW_MS = 2 * 60 * 1000; // 2 menit
 
@@ -13,7 +13,7 @@ function statePath() {
 function readState() {
   const p = statePath();
   if (!fs.existsSync(p)) return { failures: [] };
-  return JSON.parse(fs.readFileSync(p, "utf-8"));
+  return JSON.parse(fs.readFileSync(p, 'utf-8'));
 }
 
 function writeState(state) {

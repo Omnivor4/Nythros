@@ -1,10 +1,17 @@
-import readline from "node:readline";
-import os from "node:os";
-import path from "node:path";
+import readline from 'node:readline';
+import os from 'node:os';
+import path from 'node:path';
 
 const DANGEROUS_PATTERNS = [
-  /\brm\s+-rf\b/i, /\brm\b/i, /\bdel\b/i, /\bformat\b/i, /\bsudo\b/i,
-  /\bshutdown\b/i, /\breg\s+delete\b/i, /\bdiskpart\b/i, /\bmkfs\b/i,
+  /\brm\s+-rf\b/i,
+  /\brm\b/i,
+  /\bdel\b/i,
+  /\bformat\b/i,
+  /\bsudo\b/i,
+  /\bshutdown\b/i,
+  /\breg\s+delete\b/i,
+  /\bdiskpart\b/i,
+  /\bmkfs\b/i,
   />\s*\/dev\//i,
 ];
 export function looksDangerous(command) {
@@ -12,17 +19,26 @@ export function looksDangerous(command) {
 }
 
 const NETWORK_PATTERNS = [
-  /\bnpm\s+install\b/i, /\byarn\s+install\b/i, /\bpnpm\s+install\b/i,
-  /\bpip\s+install\b/i, /\bcurl\b/i, /\bwget\b/i, /\bgit\s+clone\b/i,
-  /\bgit\s+fetch\b/i, /\bgit\s+pull\b/i, /\bgit\s+push\b/i, /\bapt\s+get\b/i,
-  /\bapt-get\b/i, /\bapk\s+add\b/i
+  /\bnpm\s+install\b/i,
+  /\byarn\s+install\b/i,
+  /\bpnpm\s+install\b/i,
+  /\bpip\s+install\b/i,
+  /\bcurl\b/i,
+  /\bwget\b/i,
+  /\bgit\s+clone\b/i,
+  /\bgit\s+fetch\b/i,
+  /\bgit\s+pull\b/i,
+  /\bgit\s+push\b/i,
+  /\bapt\s+get\b/i,
+  /\bapt-get\b/i,
+  /\bapk\s+add\b/i,
 ];
 export function needsNetwork(command) {
   return NETWORK_PATTERNS.some((re) => re.test(command));
 }
 
 function expandHome(p) {
-  if (p.startsWith("~")) return path.join(os.homedir(), p.slice(1));
+  if (p.startsWith('~')) return path.join(os.homedir(), p.slice(1));
   return p;
 }
 export function isProtectedPath(targetPath, protectedPaths = []) {
@@ -34,7 +50,7 @@ export function isProtectedPath(targetPath, protectedPaths = []) {
   });
 }
 export function commandTouchesProtectedPath(command, protectedPaths = []) {
-  return protectedPaths.some((p) => command.includes(p.replace(/^~/, "")) || command.includes(p));
+  return protectedPaths.some((p) => command.includes(p.replace(/^~/, '')) || command.includes(p));
 }
 export async function askConfirmation(message) {
   if (!process.stdin.isTTY) return false;
@@ -43,10 +59,14 @@ export async function askConfirmation(message) {
     rl.question(`${message} (y/N): `, (answer) => {
       rl.close();
       const n = answer.trim().toLowerCase();
-      resolve(n === "y" || n === "yes");
+      resolve(n === 'y' || n === 'yes');
     });
   });
 }
-let confirmMode = "ask";
-export function setConfirmMode(mode) { confirmMode = mode; }
-export function getConfirmMode() { return confirmMode; }
+let confirmMode = 'ask';
+export function setConfirmMode(mode) {
+  confirmMode = mode;
+}
+export function getConfirmMode() {
+  return confirmMode;
+}

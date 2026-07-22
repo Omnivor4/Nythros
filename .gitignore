@@ -11,3 +11,6 @@ Nythros/
 output.txt
 c.txt
 selfImprove_log.txt
+
+# Code coverage reports
+coverage/

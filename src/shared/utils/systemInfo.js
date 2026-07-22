@@ -1,4 +1,4 @@
-import os from "node:os";
+import os from 'node:os';
 
 export function getSystemInfo() {
   return {
@@ -7,6 +7,6 @@ export function getSystemInfo() {
     totalMemGB: Math.round(os.totalmem() / 1024 / 1024 / 1024),
     freeMemGB: Math.round(os.freemem() / 1024 / 1024 / 1024),
     uptime: os.uptime(),
-    userInfo: os.userInfo().username
+    userInfo: os.userInfo().username,
   };
 }

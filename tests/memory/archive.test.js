@@ -24,18 +24,6 @@ function test(name, fn) {
   }
 }
 
-async function testAsync(name, fn) {
-  try {
-    await fn();
-    passed++;
-    console.log(`  ✅ ${name}`);
-  } catch (e) {
-    failed++;
-    console.log(`  ❌ ${name}`);
-    console.log(`     ${e.message}`);
-  }
-}
-
 console.log('\n🧪 Archive Module Tests\n');
 
 // === Setup: bikin temp environment ===
@@ -60,7 +48,9 @@ function archivePath() {
 test('appendToArchive creates archive.jsonl and appends entry', () => {
   const archivePath = path.join(TMP_NYTHROS, 'archive.jsonl');
   // Bersihin kalau ada dari test sebelumnya
-  try { fs.unlinkSync(archivePath); } catch {}
+  try {
+    fs.unlinkSync(archivePath);
+  } catch {}
 
   appendToArchive('First session summary', ['key point A', 'key point B'], 3);
 
@@ -107,7 +97,9 @@ test('readRecentArchive returns [] when file does not exist', () => {
   const ap = archivePath();
   // Backup archive, delete, test, restore
   const backup = fs.existsSync(ap) ? fs.readFileSync(ap, 'utf-8') : null;
-  try { fs.unlinkSync(ap); } catch {}
+  try {
+    fs.unlinkSync(ap);
+  } catch {}
 
   const result = readRecentArchive();
   assert.ok(Array.isArray(result));
@@ -134,12 +126,28 @@ test('searchArchive finds matching entries by summary', () => {
   // Reset archive dengan data yang predictable
   const archivePath = path.join(TMP_NYTHROS, 'archive.jsonl');
   const entries = [
-    { summary: 'Fixed login bug in authentication module', key_points: ['auth flow', 'JWT fix'], message_count: 12 },
-    { summary: 'Added payment gateway integration', key_points: ['stripe', 'webhooks', 'refund logic'], message_count: 8 },
-    { summary: 'Refactored login page UI', key_points: ['frontend', 'form validation'], message_count: 5 },
-    { summary: 'Database migration for user profiles', key_points: ['postgres', 'schema change'], message_count: 15 }
+    {
+      summary: 'Fixed login bug in authentication module',
+      key_points: ['auth flow', 'JWT fix'],
+      message_count: 12,
+    },
+    {
+      summary: 'Added payment gateway integration',
+      key_points: ['stripe', 'webhooks', 'refund logic'],
+      message_count: 8,
+    },
+    {
+      summary: 'Refactored login page UI',
+      key_points: ['frontend', 'form validation'],
+      message_count: 5,
+    },
+    {
+      summary: 'Database migration for user profiles',
+      key_points: ['postgres', 'schema change'],
+      message_count: 15,
+    },
   ];
-  fs.writeFileSync(archivePath, entries.map(e => JSON.stringify(e)).join('\n') + '\n', 'utf-8');
+  fs.writeFileSync(archivePath, entries.map((e) => JSON.stringify(e)).join('\n') + '\n', 'utf-8');
 
   const results = searchArchive('login');
   assert.equal(results.length, 2, '2 entries mengandung "login"');
@@ -158,8 +166,11 @@ test('searchArchive finds matches in key_points', () => {
 test('searchArchive is case insensitive', () => {
   const resultsUpper = searchArchive('LOGIN');
   const resultsLower = searchArchive('login');
-  assert.equal(resultsUpper.length, resultsLower.length,
-    'Search "LOGIN" dan "login" harusnya return sama');
+  assert.equal(
+    resultsUpper.length,
+    resultsLower.length,
+    'Search "LOGIN" dan "login" harusnya return sama',
+  );
 });
 
 // === Test 10: searchArchive — no matches ===
@@ -173,7 +184,9 @@ test('searchArchive returns [] when no matches found', () => {
 test('searchArchive returns [] when file does not exist', () => {
   const ap = archivePath();
   const backup = fs.existsSync(ap) ? fs.readFileSync(ap, 'utf-8') : null;
-  try { fs.unlinkSync(ap); } catch {}
+  try {
+    fs.unlinkSync(ap);
+  } catch {}
 
   const result = searchArchive('anything');
   assert.ok(Array.isArray(result));
@@ -189,9 +202,13 @@ test('searchArchive returns maximum 10 results', () => {
   const manyEntries = Array.from({ length: 15 }, (_, i) => ({
     summary: `Test entry number ${i + 1}`,
     key_points: ['test keyword'],
-    message_count: i
+    message_count: i,
   }));
-  fs.writeFileSync(archivePath, manyEntries.map(e => JSON.stringify(e)).join('\n') + '\n', 'utf-8');
+  fs.writeFileSync(
+    archivePath,
+    manyEntries.map((e) => JSON.stringify(e)).join('\n') + '\n',
+    'utf-8',
+  );
 
   const results = searchArchive('test');
   assert.equal(results.length, 10, 'Maksimal 10 hasil');
@@ -223,7 +240,9 @@ test('appendToArchive handles special characters in summary', () => {
 
 // === Cleanup ===
 process.chdir(origCwd);
-try { fs.rmSync(TMP_DIR, { recursive: true, force: true }); } catch {}
+try {
+  fs.rmSync(TMP_DIR, { recursive: true, force: true });
+} catch {}
 
 // Summary
 console.log(`\n📊 Hasil: ${passed} passed, ${failed} failed from ${passed + failed} tests\n`);

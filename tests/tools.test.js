@@ -29,18 +29,6 @@ function test(name, fn) {
   }
 }
 
-async function testAsync(name, fn) {
-  try {
-    await fn();
-    passed++;
-    console.log(`  ✅ ${name}`);
-  } catch (e) {
-    failed++;
-    console.log(`  ❌ ${name}`);
-    console.log(`     ${e.message}`);
-  }
-}
-
 console.log('\n🧪 Tools Module Tests\n');
 
 // Setup: pindah ke temp directory biar semua file ops di situ
@@ -75,7 +63,10 @@ test('writeFileTool creates file with content', () => {
 
 // Test 4: writeFileTool - creates nested directories
 test('writeFileTool creates nested dirs automatically', () => {
-  const result = tools.writeFileTool.execute({ path: 'deep/nested/test.txt', content: 'nested content' });
+  const result = tools.writeFileTool.execute({
+    path: 'deep/nested/test.txt',
+    content: 'nested content',
+  });
   assert.ok(result.includes('tersimpan'), 'Should confirm file saved');
   assert.ok(fs.existsSync('deep/nested/test.txt'), 'Nested file should exist');
 });
@@ -108,7 +99,11 @@ test('readFileTool returns error when path is directory', () => {
 // Test 8: editFileTool - simple replacement
 test('editFileTool replaces text correctly', () => {
   fs.writeFileSync('test-edit.txt', 'foo bar baz');
-  const result = tools.editFileTool.execute({ path: 'test-edit.txt', old_text: 'bar', new_text: 'qux' });
+  const result = tools.editFileTool.execute({
+    path: 'test-edit.txt',
+    old_text: 'bar',
+    new_text: 'qux',
+  });
   assert.ok(result.includes('berhasil'), 'Should confirm edit success');
   assert.equal(fs.readFileSync('test-edit.txt', 'utf-8'), 'foo qux baz');
 });
@@ -116,7 +111,11 @@ test('editFileTool replaces text correctly', () => {
 // Test 9: editFileTool - rejects non-unique match
 test('editFileTool rejects non-unique old_text', () => {
   fs.writeFileSync('test-edit-dup.txt', 'apple apple pie');
-  const result = tools.editFileTool.execute({ path: 'test-edit-dup.txt', old_text: 'apple', new_text: 'orange' });
+  const result = tools.editFileTool.execute({
+    path: 'test-edit-dup.txt',
+    old_text: 'apple',
+    new_text: 'orange',
+  });
   assert.ok(result.startsWith('Error:'), 'Should reject non-unique match');
 });
 
@@ -157,7 +156,10 @@ test('listDirTool returns error when path is a file', () => {
 // Test 14: writeFileTool - overwrites existing file
 test('writeFileTool overwrites existing file', () => {
   fs.writeFileSync('test-overwrite.txt', 'old content');
-  const result = tools.writeFileTool.execute({ path: 'test-overwrite.txt', content: 'new content' });
+  const result = tools.writeFileTool.execute({
+    path: 'test-overwrite.txt',
+    content: 'new content',
+  });
   assert.ok(result.includes('tersimpan'), 'Should confirm overwrite');
   assert.equal(fs.readFileSync('test-overwrite.txt', 'utf-8'), 'new content');
 });
@@ -170,7 +172,9 @@ test('readFileTool detects null byte in path', () => {
 
 // Cleanup
 process.chdir(ORIGINAL_CWD);
-try { fs.rmSync(TEST_DIR, { recursive: true, force: true }); } catch {}
+try {
+  fs.rmSync(TEST_DIR, { recursive: true, force: true });
+} catch {}
 
 // Summary
 console.log(`\n📊 Hasil: ${passed} passed, ${failed} failed from ${passed + failed} tests\n`);

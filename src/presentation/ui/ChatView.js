@@ -1,4 +1,3 @@
-import React from 'react';
 import { Text, Box } from 'ink';
 import { html } from './htm.js';
 import { theme } from './theme.js';
@@ -30,7 +29,7 @@ function parseInlineSegments(text) {
   const lines = text.split('\n');
 
   for (const line of lines) {
-    if (/^[⚠️❌]|^(Warning|Error|WARN|ERROR):/.test(line)) {
+    if (/^[⚠❌]|^(?:Warning|Error|WARN|ERROR):/i.test(line)) {
       segments.push({ type: 'warning', content: line });
     } else if (/^[✅✓]/.test(line)) {
       segments.push({ type: 'success', content: line });
@@ -54,7 +53,13 @@ function parseInlineSegments(text) {
 
 export const ChatView = ({ messages, maxHeight, lastUsage }) => {
   return html`
-    <${Box} flexDirection="column" paddingX=${2} width="100%" marginBottom=${1} maxHeight=${maxHeight}>
+    <${Box}
+      flexDirection="column"
+      paddingX=${2}
+      width="100%"
+      marginBottom=${1}
+      maxHeight=${maxHeight}
+    >
       ${messages.map((msg, i) => {
         if (msg.role === 'user') {
           // User messages: simple colored text, no bubble, aligned left
@@ -76,25 +81,35 @@ export const ChatView = ({ messages, maxHeight, lastUsage }) => {
           const segments = parseAgentText(msg.text);
           return html`
             <${Box} key=${i} flexDirection="column" marginY=${1} width="100%">
-              <${Text} color=${theme.colors.agentLabel} bold>Nythros:<//> 
+              <${Text} color=${theme.colors.agentLabel} bold>Nythros:<//>
               <${Box} paddingLeft=${2} marginTop=${0} flexDirection="column">
                 ${segments.map((seg, si) => {
-                  if (seg.type === 'code_block') return html`
-                    <${Box} key=${si} borderStyle="round"
-                            borderColor=${theme.colors.dimBorder}
-                            paddingX=${1} marginY=${0}>
-                      <${Text} color=${theme.colors.codeBlock}>${seg.content}<//>
-                    <//>
-                  `;
-                  if (seg.type === 'inline_code') return html`
-                    <${Text} key=${si} color=${theme.colors.inlineCode} bold>\`${seg.content}\`<//>
-                  `;
-                  if (seg.type === 'warning') return html`
-                    <${Text} key=${si} color=${theme.colors.emphasis}>${seg.content}<//>
-                  `;
-                  if (seg.type === 'success') return html`
-                    <${Text} key=${si} color=${theme.colors.codeBlock}>${seg.content}<//>
-                  `;
+                  if (seg.type === 'code_block')
+                    return html`
+                      <${Box}
+                        key=${si}
+                        borderStyle="round"
+                        borderColor=${theme.colors.dimBorder}
+                        paddingX=${1}
+                        marginY=${0}
+                      >
+                        <${Text} color=${theme.colors.codeBlock}>${seg.content}<//>
+                      <//>
+                    `;
+                  if (seg.type === 'inline_code')
+                    return html`
+                      <${Text} key=${si} color=${theme.colors.inlineCode} bold
+                        >\`${seg.content}\`<//
+                      >
+                    `;
+                  if (seg.type === 'warning')
+                    return html`
+                      <${Text} key=${si} color=${theme.colors.emphasis}>${seg.content}<//>
+                    `;
+                  if (seg.type === 'success')
+                    return html`
+                      <${Text} key=${si} color=${theme.colors.codeBlock}>${seg.content}<//>
+                    `;
                   if (seg.type === 'newline') return html`<${Text} key=${si}> <//>`;
                   return html`
                     <${Text} key=${si} color=${theme.colors.agentText} wrap="wrap">
@@ -107,19 +122,17 @@ export const ChatView = ({ messages, maxHeight, lastUsage }) => {
           `;
         }
       })}
-      
-      ${lastUsage && html`
-        <${Box} paddingLeft=${2} marginTop=${0} marginBottom=${1}>
-          <${Text} color=${theme.colors.dim}>
-            ${formatUsage(lastUsage.usage)}
-            ${" · "}
-            ${formatCost(lastUsage.cost)}
-            ${lastUsage.cost?.isEstimate ? " (est.)" : ""}
-            ${" · "}
-            ${lastUsage.model || ""}
+      ${
+        lastUsage &&
+        html`
+          <${Box} paddingLeft=${2} marginTop=${0} marginBottom=${1}>
+            <${Text} color=${theme.colors.dim}>
+              ${formatUsage(lastUsage.usage)} ${' · '} ${formatCost(lastUsage.cost)}
+              ${lastUsage.cost?.isEstimate ? ' (est.)' : ''} ${' · '} ${lastUsage.model || ''}
+            <//>
           <//>
-        <//>
-      `}
+        `
+      }
     <//>
   `;
 };

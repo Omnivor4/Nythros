@@ -178,6 +178,16 @@
   },
   "active": "c005d5393278c3ea",
   "lastOpenFiles": [
+    "node_modules/pdf-lib/README.md",
+    "node_modules/readdir-glob/node_modules/minimatch/README.md",
+    "examples",
+    "apps/deno/tests.md",
+    "apps/deno",
+    "apps",
+    "assets/pdfs/standard_fonts_demo.pdf.md",
+    "assets/pdfs",
+    "assets",
+    "docs/ko",
     "node_modules/mimic-fn/readme.md",
     "src/infrastructure/state/budgetGuard.js.tmp.5260.f7864eaa5107",
     "CLAUDE.md",
@@ -186,7 +196,6 @@
     "node_modules/zip-stream/node_modules/archiver-utils/README.md",
     "src/agent/Agent.js.tmp.23232.42869ca89492",
     "src/agent/Agent.js.tmp.23232.e2cda7458553",
-    "src/agent/Agent.js.tmp.23232.71ea1e60bb98",
-    "src/presentation/ui/App.js.tmp.23232.7e3d5af9cd02"
+    "src/agent/Agent.js.tmp.23232.71ea1e60bb98"
   ]
 }

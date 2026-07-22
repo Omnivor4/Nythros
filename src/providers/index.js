@@ -1,22 +1,29 @@
-import { OpenAICompatibleProvider } from "./openaiCompatible.js";
+import { OpenAICompatibleProvider } from './openaiCompatible.js';
 
 const RETRIABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
-const RETRIABLE_MESSAGES = ["timeout", "network error", "fetch failed", 
-  "timed out", "econnrefused", "socket hang up", "aborted"];
+const RETRIABLE_MESSAGES = [
+  'timeout',
+  'network error',
+  'fetch failed',
+  'timed out',
+  'econnrefused',
+  'socket hang up',
+  'aborted',
+];
 
 function isRetriable(err) {
   if (err.status && RETRIABLE_STATUSES.has(err.status)) return true;
-  const msg = (err.message || "").toLowerCase();
-  return RETRIABLE_MESSAGES.some(m => msg.includes(m));
+  const msg = (err.message || '').toLowerCase();
+  return RETRIABLE_MESSAGES.some((m) => msg.includes(m));
 }
 
 export class FallbackProvider {
   constructor(endpoints) {
     this.providers = endpoints
-      .filter(ep => ep.api_key && ep.base_url)
+      .filter((ep) => ep.api_key && ep.base_url)
       .sort((a, b) => (a.priority || 99) - (b.priority || 99))
-      .map(ep => ({
-        id: ep.id || ep.name || "unknown",
+      .map((ep) => ({
+        id: ep.id || ep.name || 'unknown',
         provider: new OpenAICompatibleProvider({
           apiKey: ep.api_key,
           model: ep.model,
@@ -28,7 +35,7 @@ export class FallbackProvider {
       }));
 
     if (this.providers.length === 0) {
-      throw new Error("Belum ada endpoint yang dikonfigurasi. Jalanin: nythros setup");
+      throw new Error('Belum ada endpoint yang dikonfigurasi. Jalanin: nythros setup');
     }
   }
 
@@ -47,9 +54,8 @@ export class FallbackProvider {
 
   _availableProviders() {
     const now = Date.now();
-    return this.providers.filter(p =>
-      p.failCount === 0 ||
-      (p.lastFailAt && now - p.lastFailAt > p.cooldownMs)
+    return this.providers.filter(
+      (p) => p.failCount === 0 || (p.lastFailAt && now - p.lastFailAt > p.cooldownMs),
     );
   }
 
@@ -57,8 +63,8 @@ export class FallbackProvider {
     const available = this._availableProviders();
 
     if (available.length === 0) {
-      const oldest = [...this.providers].sort((a, b) =>
-        (a.lastFailAt || 0) - (b.lastFailAt || 0)
+      const oldest = [...this.providers].sort(
+        (a, b) => (a.lastFailAt || 0) - (b.lastFailAt || 0),
       )[0];
       available.push(oldest);
     }
@@ -80,16 +86,16 @@ export class FallbackProvider {
 
           if (params.onProgress) {
             params.onProgress({
-              type: "provider_fallback",
+              type: 'provider_fallback',
               from: entry.id,
               reason: err.message,
-              next: available[available.indexOf(entry) + 1]?.id || null
+              next: available[available.indexOf(entry) + 1]?.id || null,
             });
           }
 
           console.error(
             `[Nythros] Endpoint "${entry.id}" gagal (${err.message}), ` +
-            `coba endpoint berikutnya...`
+              `coba endpoint berikutnya...`,
           );
           continue;
         } else {
@@ -100,7 +106,7 @@ export class FallbackProvider {
 
     throw new Error(
       `Semua endpoint gagal. Error terakhir: ${lastErr?.message}\n` +
-      `Cek koneksi internet atau tambahkan endpoint cadangan di config.`
+        `Cek koneksi internet atau tambahkan endpoint cadangan di config.`,
     );
   }
 
@@ -109,9 +115,9 @@ export class FallbackProvider {
   }
 
   getStatus() {
-    return this.providers.map(p => ({
+    return this.providers.map((p) => ({
       id: p.id,
-      available: p.failCount === 0 || (Date.now() - (p.lastFailAt || 0)) > p.cooldownMs,
+      available: p.failCount === 0 || Date.now() - (p.lastFailAt || 0) > p.cooldownMs,
       failCount: p.failCount,
     }));
   }
@@ -121,8 +127,8 @@ export function createProvider(config, preferredEndpointId = null) {
   const endpoints = config.endpoints || [];
 
   if (preferredEndpointId) {
-    const preferred = endpoints.find(ep => ep.id === preferredEndpointId);
-    const rest = endpoints.filter(ep => ep.id !== preferredEndpointId);
+    const preferred = endpoints.find((ep) => ep.id === preferredEndpointId);
+    const rest = endpoints.filter((ep) => ep.id !== preferredEndpointId);
     return new FallbackProvider(preferred ? [preferred, ...rest] : endpoints);
   }
 

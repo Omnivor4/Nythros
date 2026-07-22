@@ -12,16 +12,18 @@ let pythonAvailable = null;
 
 export const analyzeImageTool = {
   name: 'analyze_image',
-  description: 'Analisis file gambar lokal dan ekstrak informasi: dimensi, format, warna dominan, brightness, dan teks (kalau ada). Gunakan saat user melampirkan path gambar dan kamu perlu tahu isi/karakteristik gambar tersebut tanpa vision API. Requires Python + Pillow.',
+  description:
+    'Analisis file gambar lokal dan ekstrak informasi: dimensi, format, warna dominan, brightness, dan teks (kalau ada). Gunakan saat user melampirkan path gambar dan kamu perlu tahu isi/karakteristik gambar tersebut tanpa vision API. Requires Python + Pillow.',
   input_schema: {
     type: 'object',
     properties: {
       path: {
         type: 'string',
-        description: 'Path absolut atau relatif ke file gambar (.png, .jpg, .jpeg, .gif, .webp, .bmp)'
-      }
+        description:
+          'Path absolut atau relatif ke file gambar (.png, .jpg, .jpeg, .gif, .webp, .bmp)',
+      },
     },
-    required: ['path']
+    required: ['path'],
   },
   execute: async ({ path: imagePath }) => {
     // Cek Python tersedia (cached)
@@ -43,10 +45,14 @@ export const analyzeImageTool = {
     }
 
     try {
-      const result = await runPythonScript(SCRIPT_PATH, { path: resolvedPath }, {
-        timeout: 15000,
-        pythonCmd: pythonAvailable.cmd
-      });
+      const result = await runPythonScript(
+        SCRIPT_PATH,
+        { path: resolvedPath },
+        {
+          timeout: 15000,
+          pythonCmd: pythonAvailable.cmd,
+        },
+      );
 
       if (!result.success) {
         return `Gagal menganalisis gambar: ${result.error}`;
@@ -63,9 +69,7 @@ export const analyzeImageTool = {
         d.brightness !== undefined
           ? `   Brightness: ${d.brightness}% (${d.is_dark ? 'gelap' : 'terang'})`
           : null,
-        d.dominant_colors?.length
-          ? `   Warna dominan: ${d.dominant_colors.join(', ')}`
-          : null,
+        d.dominant_colors?.length ? `   Warna dominan: ${d.dominant_colors.join(', ')}` : null,
         d.detected_text
           ? `   Teks terdeteksi: "${d.detected_text.substring(0, 200)}${d.detected_text.length > 200 ? '...' : ''}"`
           : null,
@@ -75,5 +79,5 @@ export const analyzeImageTool = {
     } catch (err) {
       return `❌ Error saat analisis gambar: ${err.message}`;
     }
-  }
+  },
 };

@@ -34,6 +34,9 @@ that is not available, say so honestly.
 ## Obsidian
 {{OBSIDIAN_VAULT}}
 
+## Notion
+{{NOTION}}
+
 ## Alerts
 {{LAST_ERROR}}
 {{DOCTOR_WARNINGS}}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Text, Box, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import { html } from './htm.js';
@@ -25,7 +25,14 @@ const SLASH_COMMANDS = [
   { name: '/exit', desc: 'Exit Nythros' },
 ];
 
-export const InputBox = ({ onSubmit, mode, modelName, provider, isFormulating, effort = "Medium", onEffortChange }) => {
+export const InputBox = ({
+  onSubmit,
+  mode,
+  modelName,
+  isFormulating,
+  effort = 'Medium',
+  onEffortChange,
+}) => {
   const [value, setValue] = useState('');
   const [cursorVisible, setCursorVisible] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -35,18 +42,18 @@ export const InputBox = ({ onSubmit, mode, modelName, provider, isFormulating, e
   // Blinking cursor effect
   useEffect(() => {
     const timer = setInterval(() => {
-      setCursorVisible(v => !v);
+      setCursorVisible((v) => !v);
     }, 500);
     return () => clearInterval(timer);
   }, []);
 
-  const matches = value.startsWith('/') 
-    ? SLASH_COMMANDS.filter(cmd => cmd.name.startsWith(value.toLowerCase())) 
+  const matches = value.startsWith('/')
+    ? SLASH_COMMANDS.filter((cmd) => cmd.name.startsWith(value.toLowerCase()))
     : [];
 
   const handleEffortClick = () => {
     if (onEffortChange) {
-      const EFFORTS = ["Low", "Medium", "High"];
+      const EFFORTS = ['Low', 'Medium', 'High'];
       const next = EFFORTS[(EFFORTS.indexOf(effort) + 1) % EFFORTS.length];
       onEffortChange(next);
     }
@@ -67,36 +74,36 @@ export const InputBox = ({ onSubmit, mode, modelName, provider, isFormulating, e
       }
 
       if (str === '\x01') {
-        setIsSelected(prev => !prev);
+        setIsSelected((prev) => !prev);
         return;
       }
-      
+
       if (str === '\x1b' && pasteData) {
         setPasteData(null);
         setValue('');
         return;
       }
 
-      const isPaste = (str.length > 10 || str.includes('\n'))
-        && !str.startsWith('\x1b')
-        && !str.startsWith('\x00');
+      const isPaste =
+        (str.length > 10 || str.includes('\n')) &&
+        !str.startsWith('\x1b') &&
+        !str.startsWith('\x00');
 
       if (isPaste) {
         clearTimeout(pasteTimer);
         pasteBuffer += str;
 
         pasteTimer = setTimeout(() => {
-          const fullText = pasteBuffer
-            .replace(/\r\n/g, '\n')
-            .replace(/\r/g, '\n')
-            .trim();
+          const fullText = pasteBuffer.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
 
           if (fullText.length > 0) {
             const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg'];
-            const isImagePath = imageExtensions.some(ext =>
-              fullText.toLowerCase().endsWith(ext)
-            ) && (fullText.startsWith('/') || fullText.startsWith('./') ||
-                  fullText.startsWith('../') || fullText.match(/^[A-Za-z]:\\/));
+            const isImagePath =
+              imageExtensions.some((ext) => fullText.toLowerCase().endsWith(ext)) &&
+              (fullText.startsWith('/') ||
+                fullText.startsWith('./') ||
+                fullText.startsWith('../') ||
+                fullText.match(/^[A-Za-z]:\\/));
 
             if (isImagePath) {
               const filename = fullText.split(/[/\\]/).pop();
@@ -104,7 +111,7 @@ export const InputBox = ({ onSubmit, mode, modelName, provider, isFormulating, e
                 fullText: `[User melampirkan gambar: ${fullText}]\n\nGunakan tool analyze_image dengan path "${fullText}" untuk melihat detail gambarnya, lalu respons berdasarkan hasil analisis.`,
                 isImage: true,
                 filename: filename,
-                imagePath: fullText
+                imagePath: fullText,
               });
             } else {
               const lines = fullText.split('\n');
@@ -112,7 +119,7 @@ export const InputBox = ({ onSubmit, mode, modelName, provider, isFormulating, e
                 fullText,
                 lineCount: lines.length,
                 charCount: fullText.length,
-                isMultiline: lines.length > 1
+                isMultiline: lines.length > 1,
               });
             }
             setValue('');
@@ -159,9 +166,9 @@ export const InputBox = ({ onSubmit, mode, modelName, provider, isFormulating, e
 
     if (matches.length > 0) {
       if (key.upArrow) {
-        setSelectedIndex(prev => Math.max(0, prev - 1));
+        setSelectedIndex((prev) => Math.max(0, prev - 1));
       } else if (key.downArrow) {
-        setSelectedIndex(prev => Math.min(matches.length - 1, prev + 1));
+        setSelectedIndex((prev) => Math.min(matches.length - 1, prev + 1));
       }
     }
   });
@@ -177,9 +184,9 @@ export const InputBox = ({ onSubmit, mode, modelName, provider, isFormulating, e
       let finalVal = pasteData.fullText;
       if (val.trim()) {
         if (pasteData.isImage) {
-           finalVal = `[User melampirkan gambar: ${pasteData.filename}]\n\nInstruksi user: ${val.trim()}`;
+          finalVal = `[User melampirkan gambar: ${pasteData.filename}]\n\nInstruksi user: ${val.trim()}`;
         } else {
-           finalVal += '\n\n' + val.trim();
+          finalVal += '\n\n' + val.trim();
         }
       }
       onSubmit(finalVal);
@@ -208,49 +215,94 @@ export const InputBox = ({ onSubmit, mode, modelName, provider, isFormulating, e
     setSelectedIndex(0); // reset selection when typing
   }, [value]);
 
-  const modeColor = mode === "plan" ? theme.colors.plan : mode === "execute" ? theme.colors.execute : theme.colors.general;
+  const modeColor =
+    mode === 'plan'
+      ? theme.colors.plan
+      : mode === 'execute'
+        ? theme.colors.execute
+        : theme.colors.general;
   const modeCap = mode.toUpperCase();
   const cwd = process.cwd();
   const shortPath = path.basename(cwd);
 
   return html`
     <${Box} flexDirection="column" width="100%" paddingX=${2}>
-
-      ${matches.length > 0 ? html`
-        <${Box} flexDirection="column" marginBottom=${1} paddingX=${2}>
-          <${Text} color=${theme.colors.dim}>Slash Commands:<//>
-          ${matches.map((cmd, i) => html`
-            <${Box} key=${i}>
-              <${Text} color=${i === selectedIndex ? theme.colors.black : theme.colors.accent} backgroundColor=${i === selectedIndex ? theme.colors.accent : undefined} bold>${cmd.name.padEnd(10)}<//>
-              <${Text} color=${i === selectedIndex ? theme.colors.white : theme.colors.dim}>  ${cmd.desc}<//>
-            <//>
-          `)}
-        <//>
-      ` : null}
+      ${
+        matches.length > 0
+          ? html`
+              <${Box} flexDirection="column" marginBottom=${1} paddingX=${2}>
+                <${Text} color=${theme.colors.dim}>Slash Commands:<//>
+                ${matches.map(
+                  (cmd, i) => html`
+                    <${Box} key=${i}>
+                      <${Text}
+                        color=${i === selectedIndex ? theme.colors.black : theme.colors.accent}
+                        backgroundColor=${i === selectedIndex ? theme.colors.accent : undefined}
+                        bold
+                        >${cmd.name.padEnd(10)}<//
+                      >
+                      <${Text} color=${i === selectedIndex ? theme.colors.white : theme.colors.dim}>
+                        ${cmd.desc}<//
+                      >
+                    <//>
+                  `,
+                )}
+              <//>
+            `
+          : null
+      }
 
       <${Box} flexDirection="row" alignItems="stretch">
         <${Box} width=${1} backgroundColor=${modeColor} />
-        <${Box} flexDirection="column" flexGrow=${1} backgroundColor=${isSelected ? theme.colors.bgInputSelected : theme.colors.bgInput} paddingX=${2} paddingY=${1}>
-          ${isFormulating 
-            ? html`<${Box}><${Text} color=${theme.colors.dim}>Waiting for agent...<//><//>`
-            : pasteData
-              ? html`
-                  <${Box} flexDirection="row" width="100%">
-                    <${Box} backgroundColor=${theme.colors.accent} paddingX=${1}>
-                      <${Text} color=${theme.colors.black} bold>
-                        ${pasteData.isImage 
-                          ? `[Image: ${pasteData.filename}]` 
-                          : `[Pasted ~${pasteData.isMultiline ? pasteData.lineCount + ' lines' : pasteData.charCount + ' chars'}]`}
+        <${Box}
+          flexDirection="column"
+          flexGrow=${1}
+          backgroundColor=${isSelected ? theme.colors.bgInputSelected : theme.colors.bgInput}
+          paddingX=${2}
+          paddingY=${1}
+        >
+          ${
+            isFormulating
+              ? html`<${Box}><${Text} color=${theme.colors.dim}>Waiting for agent...<//><//>`
+              : pasteData
+                ? html`
+                    <${Box} flexDirection="row" width="100%">
+                      <${Box} backgroundColor=${theme.colors.accent} paddingX=${1}>
+                        <${Text} color=${theme.colors.black} bold>
+                          ${
+                            pasteData.isImage
+                              ? `[Image: ${pasteData.filename}]`
+                              : `[Pasted ~${pasteData.isMultiline ? pasteData.lineCount + ' lines' : pasteData.charCount + ' chars'}]`
+                          }
+                        <//>
+                      <//>
+                      <${Box} paddingLeft=${1} flexGrow=${1}>
+                        <${TextInput}
+                          placeholder="(ketik pesan tambahan...)"
+                          value=${value}
+                          onChange=${handleChange}
+                          onSubmit=${handleSubmit}
+                          showCursor=${cursorVisible}
+                        />
                       <//>
                     <//>
-                    <${Box} paddingLeft=${1} flexGrow=${1}>
-                      <${TextInput} placeholder="(ketik pesan tambahan...)" value=${value} onChange=${handleChange} onSubmit=${handleSubmit} showCursor=${cursorVisible} />
-                    <//>
-                  <//>
-                `
-              : isSelected
-                ? html`<${Box}><${Text} color=${theme.colors.black} backgroundColor=${theme.colors.bgInputSelected}>${value || ' '}<//><//>`
-                : html`<${Box}><${TextInput} placeholder="Ask Anything...................." value=${value} onChange=${handleChange} onSubmit=${handleSubmit} showCursor=${cursorVisible} /><//>`
+                  `
+                : isSelected
+                  ? html`<${Box}
+                      ><${Text}
+                        color=${theme.colors.black}
+                        backgroundColor=${theme.colors.bgInputSelected}
+                        >${value || ' '}<//
+                      ><//
+                    >`
+                  : html`<${Box}
+                      ><${TextInput}
+                        placeholder="Ask Anything...................."
+                        value=${value}
+                        onChange=${handleChange}
+                        onSubmit=${handleSubmit}
+                        showCursor=${cursorVisible}
+                    /><//>`
           }
 
           <${Box} justifyContent="space-between" marginTop=${1}>
@@ -259,12 +311,14 @@ export const InputBox = ({ onSubmit, mode, modelName, provider, isFormulating, e
               <${Text} color=${theme.colors.khaki}>${modelName || 'Provider'}<//>
             <//>
             <${Box}>
-              <${Text} color=${theme.colors.dim}>[Tab] Mode: ${mode} · [Ctrl+E] Effort: ${effort}<//>
+              <${Text} color=${theme.colors.dim}
+                >[Tab] Mode: ${mode} · [Ctrl+E] Effort: ${effort}<//
+              >
             <//>
           <//>
         <//>
       <//>
-      
+
       <${Box} alignItems="center">
         <${Box} backgroundColor=${modeColor} paddingX=${1}>
           <${Text} color=${theme.colors.black} bold>${modeCap}<//>

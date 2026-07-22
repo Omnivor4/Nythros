@@ -14,20 +14,21 @@ let pythonAvailable = null;
 
 export const executePythonTool = {
   name: 'execute_python',
-  description: 'Jalankan kode Python dan return hasilnya (stdout/stderr). Gunakan untuk: kalkulasi, data processing, analisis file, atau verifikasi kode Python yang baru dibuat. Kode dijalankan di subprocess terpisah dengan timeout 30 detik. ⚠️ PERINGATAN: Kode dijalankan sungguhan di komputer user — bukan sandbox sempurna.',
+  description:
+    'Jalankan kode Python dan return hasilnya (stdout/stderr). Gunakan untuk: kalkulasi, data processing, analisis file, atau verifikasi kode Python yang baru dibuat. Kode dijalankan di subprocess terpisah dengan timeout 30 detik. ⚠️ PERINGATAN: Kode dijalankan sungguhan di komputer user — bukan sandbox sempurna.',
   input_schema: {
     type: 'object',
     properties: {
       code: {
         type: 'string',
-        description: 'Kode Python yang akan dijalankan'
+        description: 'Kode Python yang akan dijalankan',
       },
       timeout: {
         type: 'number',
-        description: 'Timeout dalam detik (default: 10, max: 30)'
-      }
+        description: 'Timeout dalam detik (default: 10, max: 30)',
+      },
     },
-    required: ['code']
+    required: ['code'],
   },
   execute: async ({ code, timeout = 10 }) => {
     // Cek Python tersedia (cached)
@@ -40,14 +41,18 @@ export const executePythonTool = {
     }
 
     try {
-      const result = await runPythonScript(SANDBOX_SCRIPT, {
-        code,
-        timeout: Math.min(timeout, 30),
-        working_dir: process.cwd()
-      }, {
-        timeout: (Math.min(timeout, 30) + 5) * 1000, // sedikit lebih lama dari Python timeout
-        pythonCmd: pythonAvailable.cmd
-      });
+      const result = await runPythonScript(
+        SANDBOX_SCRIPT,
+        {
+          code,
+          timeout: Math.min(timeout, 30),
+          working_dir: process.cwd(),
+        },
+        {
+          timeout: (Math.min(timeout, 30) + 5) * 1000, // sedikit lebih lama dari Python timeout
+          pythonCmd: pythonAvailable.cmd,
+        },
+      );
 
       if (!result.success) {
         return `❌ Gagal menjalankan Python: ${result.error}`;
@@ -75,7 +80,7 @@ export const executePythonTool = {
     } catch (err) {
       return `❌ Error saat menjalankan Python: ${err.message}`;
     }
-  }
+  },
 };
 
 // Export default untuk backward compatibility dengan kode lama

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Text, Box } from 'ink';
 import { html } from './htm.js';
 import { theme } from './theme.js';
@@ -37,18 +37,24 @@ const TIPS = [
   { icon: '🎮', text: 'Nythros bisa generate Excel balance tracker langsung dari chat' },
 
   // Philosophy
-  { icon: '🔒', text: 'Semua data tersimpan lokal di ~/.nythros/ — tidak ada cloud, tidak ada telemetry' },
-  { icon: '🔒', text: 'BYOK: bawa API key sendiri, pilih model sendiri, kendali penuh di tanganmu' },
+  {
+    icon: '🔒',
+    text: 'Semua data tersimpan lokal di ~/.nythros/ — tidak ada cloud, tidak ada telemetry',
+  },
+  {
+    icon: '🔒',
+    text: 'BYOK: bawa API key sendiri, pilih model sendiri, kendali penuh di tanganmu',
+  },
   { icon: '🌱', text: 'Makin sering dipakai, makin Nythros paham workflow dan preferensimu' },
 ];
 
 const ICON_COLORS = {
-  '⌨': '#83A598',   // teal
-  '🛠': '#FABD2F',   // kuning
-  '💡': '#E8833A',   // orange
-  '🎮': '#B8BB26',   // hijau
-  '🔒': '#928374',   // abu
-  '🌱': '#8EC07C',   // hijau muda
+  '⌨': '#83A598', // teal
+  '🛠': '#FABD2F', // kuning
+  '💡': '#E8833A', // orange
+  '🎮': '#B8BB26', // hijau
+  '🔒': '#928374', // abu
+  '🌱': '#8EC07C', // hijau muda
 };
 
 export const WelcomeScreen = () => {
@@ -58,16 +64,14 @@ export const WelcomeScreen = () => {
     <${Box} flexDirection="column" alignItems="center" marginBottom=${1}>
       <${Box} flexDirection="row" alignItems="center">
         <${Box} flexDirection="column" marginRight=${1}>
-          ${CROWN_LOGO.map((row, i) => html`<${Text} key=${"c" + i}>${row}<//>`)}
+          ${CROWN_LOGO.map((row, i) => html`<${Text} key=${'c' + i}>${row}<//>`)}
         <//>
         <${Box} flexDirection="column">
-          ${NYTHROS_TEXT.map((row, i) => html`
-            <${Text} key=${"t" + i} color=${theme.colors.khaki} bold>${row}<//>
-          `)}
+          ${NYTHROS_TEXT.map(
+            (row, i) => html` <${Text} key=${'t' + i} color=${theme.colors.khaki} bold>${row}<//> `,
+          )}
           <${Box} marginTop=${0} paddingLeft=${1}>
-            <${Text} color=${theme.colors.tagline}>
-              BYOK · Local · Extensible · Game-Dev Ready
-            <//>
+            <${Text} color=${theme.colors.tagline}> BYOK · Local · Extensible · Game-Dev Ready <//>
           <//>
         <//>
       <//>
@@ -79,12 +83,8 @@ export const WelcomeScreen = () => {
       <//>
 
       <${Box} marginTop=${1} marginBottom=${0} paddingLeft=${2}>
-        <${Text} color=${ICON_COLORS[tip.icon] || theme.colors.dim}>
-          ${tip.icon}${' '}
-        <//>
-        <${Text} color=${theme.colors.dim} dimColor>
-          ${tip.text}
-        <//>
+        <${Text} color=${ICON_COLORS[tip.icon] || theme.colors.dim}> ${tip.icon}${' '} <//>
+        <${Text} color=${theme.colors.dim} dimColor> ${tip.text} <//>
       <//>
     <//>
   `;

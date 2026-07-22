@@ -49,10 +49,8 @@ fs.mkdirSync(TMP_NYTHROS, { recursive: true });
 // Backup real config path kalau ada
 const realConfigPath = path.join(os.homedir(), '.nythros', 'config.json');
 const backupPath = path.join(TMP_DIR, 'config.backup');
-let hadRealConfig = false;
 if (fs.existsSync(realConfigPath)) {
   fs.copyFileSync(realConfigPath, backupPath);
-  hadRealConfig = true;
 }
 
 // Redirect config path: kita pakai CONFIG_PATH dari module, tapi kita override manual
@@ -61,10 +59,6 @@ if (fs.existsSync(realConfigPath)) {
 
 // Test pure deepMerge via modul
 const configModule = await import('../src/shared/config.js');
-const { loadConfig, saveConfig, CONFIG_PATH } = configModule;
-
-// Kita simpen real config path, redirect ke temp
-const originalConfigPath = CONFIG_PATH;
 
 // Test 1: deepMerge object sederhana
 test('deepMerge merges simple objects', () => {
@@ -81,20 +75,48 @@ testAsync('saveConfig → loadConfig cycle with temp file', async () => {
   // Tulis config ke temp path langsung
   const testCfg = {
     user: { name: 'Test', language: 'id', timezone: 'Asia/Jakarta' },
-    endpoints: [{
-      id: 'test', name: 'Test', base_url: 'https://test.com/v1',
-      api_key: 'sk-test', model: 'gpt-4o',
-      supports_vision: true, supports_tools: true, priority: 1
-    }],
-    routing: { vision_model: 'test', code_model: 'test', fast_model: 'test', default_model: 'test', eco_mode: false },
-    desktop_agent: { enabled: true, max_steps: 20, confidence_threshold: 0.75, screenshot_quality: 70, screenshot_width: 1280, action_delay_ms: 800, require_confirmation_for: ['delete'] },
+    endpoints: [
+      {
+        id: 'test',
+        name: 'Test',
+        base_url: 'https://test.com/v1',
+        api_key: 'sk-test',
+        model: 'gpt-4o',
+        supports_vision: true,
+        supports_tools: true,
+        priority: 1,
+      },
+    ],
+    routing: {
+      vision_model: 'test',
+      code_model: 'test',
+      fast_model: 'test',
+      default_model: 'test',
+      eco_mode: false,
+    },
+    desktop_agent: {
+      enabled: true,
+      max_steps: 20,
+      confidence_threshold: 0.75,
+      screenshot_quality: 70,
+      screenshot_width: 1280,
+      action_delay_ms: 800,
+      require_confirmation_for: ['delete'],
+    },
     memory: { max_session_messages: 50, compress_after: 30, longterm_max_facts: 200 },
     obsidian: { vault_path: '', enabled: true, auto_save_tasks: true, search_on_query: true },
-    safety: { protected_paths: [], require_confirmation: true, max_file_ops_per_task: 100, sandbox_mode: 'host', docker_image: '', docker_network: 'auto' },
+    safety: {
+      protected_paths: [],
+      require_confirmation: true,
+      max_file_ops_per_task: 100,
+      sandbox_mode: 'host',
+      docker_image: '',
+      docker_network: 'auto',
+    },
     theme: { accent: '000000', danger: 'FF0000', success: '00FF00' },
     budget: { session_token_limit: 50000 },
     token_budget: { max_tokens_per_session: 50000, warn_at_percent: 80, enabled: true },
-    mcpServers: []
+    mcpServers: [],
   };
 
   const testPath = path.join(TMP_NYTHROS, 'config.json');
@@ -112,11 +134,18 @@ testAsync('saveConfig → loadConfig cycle with temp file', async () => {
 // Test 3: deepMerge — default fields should be preserved
 testAsync('deepMerge preserves defaults from DEFAULT_CONFIG', async () => {
   const partial = {
-    endpoints: [{
-      id: 'partial', name: 'Partial', base_url: 'https://partial.com',
-      api_key: 'key-partial', model: 'model-x',
-      supports_vision: true, supports_tools: true, priority: 1
-    }]
+    endpoints: [
+      {
+        id: 'partial',
+        name: 'Partial',
+        base_url: 'https://partial.com',
+        api_key: 'key-partial',
+        model: 'model-x',
+        supports_vision: true,
+        supports_tools: true,
+        priority: 1,
+      },
+    ],
   };
 
   const testPath = path.join(TMP_NYTHROS, 'config-partial.json');
@@ -138,7 +167,7 @@ testAsync('Corrupted JSON returns empty from readRawConfigOrEmpty', async () => 
 
   // Should be handled gracefully
   // Simulasi: baca file corrupted → parse → catch → return {}
-  let parsed = {};
+  let parsed;
   try {
     parsed = JSON.parse(fs.readFileSync(testPath, 'utf-8'));
   } catch {
@@ -151,13 +180,20 @@ testAsync('Corrupted JSON returns empty from readRawConfigOrEmpty', async () => 
 testAsync('Deprecated keys are stripped from saved config', async () => {
   const testPath = path.join(TMP_NYTHROS, 'config-dirty.json');
   const withExtra = {
-    endpoints: [{
-      id: 'test', name: 'Test', base_url: 'https://test.com',
-      api_key: 'key', model: 'm',
-      supports_vision: true, supports_tools: true, priority: 1
-    }],
+    endpoints: [
+      {
+        id: 'test',
+        name: 'Test',
+        base_url: 'https://test.com',
+        api_key: 'key',
+        model: 'm',
+        supports_vision: true,
+        supports_tools: true,
+        priority: 1,
+      },
+    ],
     old_field: 'should be removed',
-    deprecated_feature: { nested: true }
+    deprecated_feature: { nested: true },
   };
 
   // Write with extra fields
@@ -182,7 +218,9 @@ test('API key should survive JSON serialize/deserialize', () => {
 });
 
 // Cleanup
-try { fs.rmSync(TMP_DIR, { recursive: true, force: true }); } catch {}
+try {
+  fs.rmSync(TMP_DIR, { recursive: true, force: true });
+} catch {}
 
 // Summary
 console.log(`\n📊 Hasil: ${passed} passed, ${failed} failed from ${passed + failed} tests\n`);

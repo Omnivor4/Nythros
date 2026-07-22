@@ -11,7 +11,9 @@ export async function detectPython() {
     try {
       const result = await runPython(cmd, ['-c', 'import sys; print(sys.version)']);
       if (result.success) return { cmd, version: result.stdout.trim() };
-    } catch (e) { /* coba berikutnya */ }
+    } catch {
+      /* coba berikutnya */
+    }
   }
   return null;
 }
@@ -33,7 +35,7 @@ export async function runPythonScript(scriptPath, inputData = {}, options = {}) 
 
   return new Promise((resolve) => {
     const proc = spawn(pythonCmd, [scriptPath], {
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
 
     let stdout = '';
@@ -46,8 +48,8 @@ export async function runPythonScript(scriptPath, inputData = {}, options = {}) 
       resolve({ success: false, error: `Python script timeout setelah ${timeout}ms` });
     }, timeout);
 
-    proc.stdout.on('data', d => stdout += d.toString());
-    proc.stderr.on('data', d => stderr += d.toString());
+    proc.stdout.on('data', (d) => (stdout += d.toString()));
+    proc.stderr.on('data', (d) => (stderr += d.toString()));
 
     proc.stdin.write(JSON.stringify(inputData));
     proc.stdin.end();
@@ -64,7 +66,7 @@ export async function runPythonScript(scriptPath, inputData = {}, options = {}) 
       try {
         const parsed = JSON.parse(stdout);
         resolve({ success: true, data: parsed });
-      } catch (e) {
+      } catch {
         // Script print plain text, bukan JSON
         resolve({ success: true, data: { text: stdout }, raw: stdout });
       }
@@ -86,8 +88,8 @@ export async function runPython(cmd, args, inputData = null) {
     let stdout = '';
     let stderr = '';
 
-    proc.stdout.on('data', d => stdout += d.toString());
-    proc.stderr.on('data', d => stderr += d.toString());
+    proc.stdout.on('data', (d) => (stdout += d.toString()));
+    proc.stderr.on('data', (d) => (stderr += d.toString()));
 
     if (inputData) {
       proc.stdin.write(typeof inputData === 'string' ? inputData : JSON.stringify(inputData));

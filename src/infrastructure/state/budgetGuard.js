@@ -1,15 +1,15 @@
-import { loadConfig } from "../../shared/config.js";
+import { loadConfig } from '../../shared/config.js';
 
 // State in-memory per proses CLI
 let sessionTokens = {
   prompt: 0,
   completion: 0,
-  total: 0
+  total: 0,
 };
 
 export function recordTokenUsage(usage) {
   if (!usage) return;
-  
+
   if (typeof usage.prompt_tokens === 'number') {
     sessionTokens.prompt += usage.prompt_tokens;
   }
@@ -19,7 +19,7 @@ export function recordTokenUsage(usage) {
   if (typeof usage.total_tokens === 'number') {
     sessionTokens.total += usage.total_tokens;
   } else if (usage.prompt_tokens && usage.completion_tokens) {
-    sessionTokens.total += (usage.prompt_tokens + usage.completion_tokens);
+    sessionTokens.total += usage.prompt_tokens + usage.completion_tokens;
   }
 }
 
@@ -31,13 +31,13 @@ export function budgetStatus() {
   const limit = config?.budget?.session_token_limit || 300000;
   const used = sessionTokens.total;
   const percent = Math.min(100, Math.round((used / limit) * 100));
-  
+
   return {
     used,
     limit,
     percent,
     prompt: sessionTokens.prompt,
-    completion: sessionTokens.completion
+    completion: sessionTokens.completion,
   };
 }
 

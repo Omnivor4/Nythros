@@ -1,0 +1,16 @@
+{
+  "all": true,
+  "include": ["src/**"],
+  "exclude": [
+    "node_modules/**",
+    "coverage/**",
+    "tests/**",
+    "bin/**",
+    "scripts/**",
+    "docs/**",
+    ".agents/**",
+    ".superpowers/**"
+  ],
+  "reporter": ["text", "lcov", "html"],
+  "tempDirectory": "./coverage/tmp"
+}

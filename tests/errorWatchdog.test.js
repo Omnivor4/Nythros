@@ -15,8 +15,14 @@ let passed = 0;
 let failed = 0;
 
 function test(name, fn) {
-  try { fn(); passed++; console.log(`  ✅ ${name}`); }
-  catch (e) { failed++; console.log(`  ❌ ${name}: ${e.message}`); }
+  try {
+    fn();
+    passed++;
+    console.log(`  ✅ ${name}`);
+  } catch (e) {
+    failed++;
+    console.log(`  ❌ ${name}: ${e.message}`);
+  }
 }
 
 console.log('\n🧪 Error Watchdog (Circuit Breaker) Tests\n');
@@ -93,7 +99,9 @@ test('state persists to disk (file exists)', () => {
 
 // Cleanup
 process.chdir(ORIGINAL_CWD);
-try { fs.rmSync(TEST_DIR, { recursive: true, force: true }); } catch {}
+try {
+  fs.rmSync(TEST_DIR, { recursive: true, force: true });
+} catch {}
 
 console.log(`\n📊 Hasil: ${passed} passed, ${failed} failed from ${passed + failed} tests\n`);
 process.exit(failed > 0 ? 1 : 0);

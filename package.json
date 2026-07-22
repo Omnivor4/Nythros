@@ -11,9 +11,17 @@
   },
   "scripts": {
     "start": "node bin/nythros.js",
-    "test": "node tests/config.test.js && node tests/tools.test.js && node tests/errorWatchdog.test.js && node tests/openaiCompatible.test.js && node tests/fallbackProvider.test.js && node tests/providerIntegration.test.js && node tests/memory/archive.test.js && node tests/doctor.test.js && node tests/systemPrompt.test.js && node tests/agent.integration.test.js && node tests/doctor-warnings-cold.test.js",
+    "test": "node tests/config.test.js && node tests/tools.test.js && node tests/errorWatchdog.test.js && node tests/openaiCompatible.test.js && node tests/fallbackProvider.test.js && node tests/providerIntegration.test.js && node tests/memory/archive.test.js && node tests/doctor.test.js && node tests/systemPrompt.test.js && node tests/agent.integration.test.js && node tests/doctor-warnings-cold.test.js && node tests/notion.test.js && node tests/slash-notion.test.js && node tests/desktop.test.js && node tests/desktop-chain.test.js && node tests/provider-error.test.js && node tests/mcp-integration.test.js",
     "test:unit": "node tests/config.test.js && node tests/tools.test.js && node tests/errorWatchdog.test.js",
     "test:provider": "node tests/openaiCompatible.test.js && node tests/fallbackProvider.test.js && node tests/providerIntegration.test.js",
+    "coverage": "c8 node tests/provider-error.test.js",
+    "coverage:full": "c8 npm test",
+    "coverage:report": "c8 report",
+    "lint": "eslint src/ tests/",
+    "lint:fix": "eslint src/ tests/ --fix",
+    "format": "prettier --check src/ tests/",
+    "format:fix": "prettier --write src/ tests/",
+    "prepare": "husky",
     "generate-logo": "python3 scripts/generate_logo.py BG.png --width 20 --height 6 --output src/ui/logo.js",
     "preview-logo": "python3 scripts/generate_logo.py BG.png --width 20 --height 6 --preview"
   },
@@ -49,5 +57,15 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/omnivora/nythros.git"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "c8": "^12.0.0",
+    "eslint": "^10.7.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.7.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.1.0",
+    "prettier": "^3.9.6"
   }
 }

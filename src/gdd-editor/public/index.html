@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GDD Editor — Nythros</title>
+    <style>
+      :root {
+        --bg: #1a1b1e;
+        --bg2: #25262b;
+        --bg3: #2c2e33;
+        --border: #373a40;
+        --text: #c1c2c5;
+        --text-dim: #909296;
+        --accent: #e8833a;
+        --accent-hover: #d9772e;
+        --green: #51cf66;
+        --red: #ff6b6b;
+        --font: 'Segoe UI', -apple-system, sans-serif;
+        --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+        --sidebar-w: 280px;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Header */
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        background: var(--bg2);
+        border-bottom: 1px solid var(--border);
+        -webkit-app-region: drag;
+      }
+      .header h1 {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--accent);
+      }
+      .header .subtitle {
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-left: 8px;
+      }
+      .header-actions {
+        display: flex;
+        gap: 8px;
+        -webkit-app-region: no-drag;
+      }
+
+      /* Layout */
+      .main {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /* Sidebar */
+      .sidebar {
+        width: var(--sidebar-w);
+        background: var(--bg2);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .sidebar-section {
+        padding: 12px;
+      }
+      .sidebar-section h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-dim);
+        margin-bottom: 8px;
+      }
+
+      .file-list {
+        list-style: none;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .file-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        border-left: 3px solid transparent;
+        transition: all 0.15s;
+      }
+      .file-item:hover {
+        background: var(--bg3);
+      }
+      .file-item.active {
+        background: var(--bg3);
+        border-left-color: var(--accent);
+        color: var(--accent);
+      }
+      .file-item .icon {
+        font-size: 16px;
+      }
+      .file-item .name {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .file-item .meta {
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+
+      /* Section tree */
+      .section-tree {
+        list-style: none;
+        overflow-y: auto;
+        max-height: 300px;
+      }
+      .section-item {
+        padding: 5px 12px;
+        cursor: pointer;
+        font-size: 12px;
+        color: var(--text-dim);
+        transition: all 0.15s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .section-item:hover {
+        color: var(--text);
+        background: var(--bg3);
+      }
+      .section-item.active {
+        color: var(--accent);
+      }
+      .section-item.l1 {
+        padding-left: 12px;
+      }
+      .section-item.l2 {
+        padding-left: 24px;
+        font-size: 11px;
+      }
+      .section-item.l3 {
+        padding-left: 36px;
+        font-size: 11px;
+      }
+      .section-item.l4 {
+        padding-left: 48px;
+        font-size: 10px;
+      }
+      .section-item .level-badge {
+        display: inline-block;
+        width: 16px;
+        color: var(--text-dim);
+        font-size: 10px;
+        opacity: 0.5;
+      }
+
+      /* Editor area */
+      .editor-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .editor-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: var(--bg2);
+        border-bottom: 1px solid var(--border);
+      }
+      .editor-toolbar .file-name {
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .editor-toolbar .section-name {
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+      .editor-toolbar .spacer {
+        flex: 1;
+      }
+
+      .editor-content {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+      }
+
+      /* Textarea */
+      .editor-pane {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .editor-pane textarea {
+        flex: 1;
+        background: var(--bg);
+        color: var(--text);
+        border: none;
+        outline: none;
+        padding: 16px;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        line-height: 1.6;
+        resize: none;
+        tab-size: 2;
+      }
+      .editor-pane textarea:focus {
+        background: #1d1e21;
+      }
+
+      /* Preview */
+      .preview-pane {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        font-size: 14px;
+        line-height: 1.7;
+        border-left: 1px solid var(--border);
+      }
+      .preview-pane h1,
+      .preview-pane h2,
+      .preview-pane h3 {
+        color: var(--accent);
+        margin: 12px 0 8px;
+      }
+      .preview-pane h1 {
+        font-size: 20px;
+      }
+      .preview-pane h2 {
+        font-size: 17px;
+      }
+      .preview-pane h3 {
+        font-size: 15px;
+      }
+      .preview-pane p {
+        margin: 6px 0;
+      }
+      .preview-pane ul,
+      .preview-pane ol {
+        padding-left: 20px;
+        margin: 6px 0;
+      }
+      .preview-pane code {
+        background: var(--bg3);
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+      }
+      .preview-pane pre {
+        background: var(--bg3);
+        padding: 12px;
+        border-radius: 6px;
+        overflow-x: auto;
+        margin: 8px 0;
+      }
+      .preview-pane pre code {
+        background: none;
+        padding: 0;
+      }
+      .preview-pane blockquote {
+        border-left: 3px solid var(--accent);
+        padding-left: 12px;
+        color: var(--text-dim);
+        margin: 8px 0;
+      }
+      .preview-pane hr {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 16px 0;
+      }
+
+      /* Setup screen */
+      .setup-screen {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        padding: 40px;
+      }
+      .setup-screen h2 {
+        color: var(--accent);
+        font-size: 20px;
+      }
+      .setup-screen p {
+        color: var(--text-dim);
+        text-align: center;
+        max-width: 400px;
+        line-height: 1.6;
+      }
+
+      /* Buttons */
+      .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-family: var(--font);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: #000;
+        font-weight: 500;
+      }
+      .btn-primary:hover {
+        background: var(--accent-hover);
+      }
+      .btn-secondary {
+        background: var(--bg3);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+      .btn-secondary:hover {
+        background: var(--border);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Input */
+      .input-group {
+        display: flex;
+        gap: 8px;
+        width: 100%;
+        max-width: 500px;
+      }
+      .input-group input {
+        flex: 1;
+        padding: 10px 14px;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-size: 14px;
+        font-family: var(--font);
+        outline: none;
+      }
+      .input-group input:focus {
+        border-color: var(--accent);
+      }
+
+      /* Status bar */
+      .status-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 6px 16px;
+        background: var(--bg2);
+        border-top: 1px solid var(--border);
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+      .status-bar .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .status-bar .dot.green {
+        background: var(--green);
+      }
+      .status-bar .dot.red {
+        background: var(--red);
+      }
+      .status-bar .dot.yellow {
+        background: #fcc419;
+      }
+      .status-bar .saved {
+        color: var(--green);
+      }
+
+      /* Toast */
+      .toast {
+        position: fixed;
+        bottom: 50px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        z-index: 100;
+      }
+      .toast.show {
+        opacity: 1;
+      }
+
+      /* Loading */
+      .loading {
+        color: var(--text-dim);
+        text-align: center;
+        padding: 40px;
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div>
+        <span class="subtitle">Nythros</span>
+        <span style="font-size: 13px; color: var(--text-dim)">/</span>
+        <span style="font-size: 13px; color: var(--accent); font-weight: 600">GDD Editor</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="openFolder()">📂 Buka Folder</button>
+        <button class="btn btn-primary" onclick="saveSection()" id="saveBtn">💾 Simpan</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="sidebar-section">
+          <h3>📄 GDD Files</h3>
+        </div>
+        <ul class="file-list" id="fileList">
+          <div class="loading" id="fileLoading">Loading...</div>
+        </ul>
+        <div class="sidebar-section" style="border-top: 1px solid var(--border); padding-top: 12px">
+          <h3>📑 Sections</h3>
+        </div>
+        <ul class="section-tree" id="sectionTree">
+          <li class="loading" style="padding: 12px; font-size: 12px">
+            Pilih file untuk lihat section
+          </li>
+        </ul>
+      </div>
+
+      <!-- Editor area -->
+      <div class="editor-area" id="editorArea">
+        <div class="setup-screen" id="setupScreen">
+          <h2>📄 GDD Editor</h2>
+          <p>
+            Editor Game Design Document — baca, edit, dan manage file GDD markdown langsung dari
+            browser.
+          </p>
+          <p style="font-size: 12px; color: var(--text-dim)">
+            Pilih folder GDD atau mulai dengan folder default:
+          </p>
+          <div class="input-group">
+            <input type="text" id="folderInput" placeholder="Path ke folder GDD..." />
+            <button class="btn btn-primary" onclick="setFolder()">Set Folder</button>
+          </div>
+          <button class="btn btn-secondary" onclick="setDefaultFolder()" style="margin-top: 8px">
+            📁 Pakai Folder Default
+          </button>
+        </div>
+
+        <div id="editorView" style="display: none; flex: 1; flex-direction: column">
+          <div class="editor-toolbar">
+            <span class="file-name" id="currentFileName"></span>
+            <span class="section-name" id="currentSectionName"></span>
+            <div class="spacer"></div>
+            <span id="saveStatus" style="font-size: 12px; color: var(--text-dim)"></span>
+          </div>
+          <div class="editor-content">
+            <div class="editor-pane">
+              <textarea id="editorTextarea" placeholder="Pilih section untuk di-edit..."></textarea>
+            </div>
+            <div class="preview-pane" id="previewPane">
+              <p style="color: var(--text-dim); font-style: italic">Preview akan muncul di sini</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar" id="statusBar">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">Memuat...</span>
+      <span style="flex: 1"></span>
+      <span id="fileInfo"></span>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      // ═══════════════════════════════════════════════════════════════
+      // STATE
+      // ═══════════════════════════════════════════════════════════════
+      let state = {
+        config: null,
+        files: [],
+        currentFile: null,
+        currentFileData: null,
+        currentSection: null,
+        hasUnsavedChanges: false,
+      };
+
+      // ═══════════════════════════════════════════════════════════════
+      // API HELPERS
+      // ═══════════════════════════════════════════════════════════════
+      async function api(method, path, body) {
+        const opts = {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+        };
+        if (body) opts.body = JSON.stringify(body);
+        const res = await fetch(path, opts);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        return data;
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // TOAST
+      // ═══════════════════════════════════════════════════════════════
+      let toastTimeout;
+
+      function showToast(msg, type = 'info') {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.style.borderLeft = `3px solid ${type === 'success' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--accent)'}`;
+        el.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => el.classList.remove('show'), 3000);
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // STATUS BAR
+      // ═══════════════════════════════════════════════════════════════
+      function setStatus(text, type = 'info') {
+        document.getElementById('statusText').textContent = text;
+        const dot = document.getElementById('statusDot');
+        dot.className =
+          'dot ' +
+          (type === 'ok' ? 'green' : type === 'error' ? 'red' : type === 'warn' ? 'yellow' : '');
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // INIT
+      // ═══════════════════════════════════════════════════════════════
+      async function init() {
+        try {
+          state.config = await api('GET', '/api/config');
+          setStatus('Terhubung', 'ok');
+
+          if (state.config.exists) {
+            document.getElementById('folderInput').value = state.config.folder;
+            loadFiles();
+          } else {
+            document.getElementById('folderInput').value = state.config.folder;
+            document.getElementById('setupScreen').style.display = 'flex';
+            setStatus('Folder GDD belum di-set', 'warn');
+          }
+        } catch (err) {
+          setStatus('Gagal konek ke server: ' + err.message, 'error');
+          document.getElementById('setupScreen').innerHTML = `
+      <h2>⚠️ Gagal Terhubung</h2>
+      <p style="color:var(--red)">${err.message}</p>
+      <p>Pastikan server GDD Editor sudah jalan.</p>
+    `;
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // FOLDER SETUP
+      // ═══════════════════════════════════════════════════════════════
+      async function setFolder() {
+        const input = document.getElementById('folderInput');
+        const folder = input.value.trim();
+        if (!folder) return showToast('Masukkan path folder', 'error');
+
+        try {
+          const result = await api('PUT', '/api/config', { folder });
+          state.config.folder = result.folder;
+          showToast('Folder GDD disimpan!', 'success');
+          document.getElementById('setupScreen').style.display = 'none';
+          document.getElementById('editorView').style.display = 'flex';
+          loadFiles();
+        } catch (err) {
+          showToast('Gagal set folder: ' + err.message, 'error');
+        }
+      }
+
+      async function setDefaultFolder() {
+        // Use the default from config
+        const folder = state.config.folder;
+        document.getElementById('folderInput').value = folder;
+        return setFolder();
+      }
+
+      async function openFolder() {
+        const folder = prompt('Path ke folder GDD:', state.config?.folder || '');
+        if (folder) {
+          document.getElementById('folderInput').value = folder;
+          return setFolder();
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // FILE LIST
+      // ═══════════════════════════════════════════════════════════════
+      async function loadFiles() {
+        try {
+          const data = await api('GET', '/api/gdd/files');
+          state.files = data.files || [];
+          renderFileList();
+
+          if (!data.exists) {
+            setStatus('Folder GDD tidak ditemukan', 'error');
+            showToast('Folder GDD tidak ditemukan', 'error');
+          } else if (state.files.length === 0) {
+            setStatus('Folder GDD kosong — belum ada file .md', 'warn');
+          }
+        } catch (err) {
+          showToast('Gagal load files: ' + err.message, 'error');
+        }
+      }
+
+      function renderFileList() {
+        const list = document.getElementById('fileList');
+        if (state.files.length === 0) {
+          list.innerHTML =
+            '<li style="padding:12px;font-size:12px;color:var(--text-dim);list-style:none">Belum ada file GDD</li>';
+          return;
+        }
+        list.innerHTML = state.files
+          .map(
+            (f, idx) => `
+    <li class="file-item ${state.currentFile === f.name ? 'active' : ''}" data-index="${idx}" onclick="selectFileByIndex(${idx})">
+      <span class="icon">📄</span>
+      <span class="name">${f.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
+      <span class="meta">${(f.size / 1024).toFixed(1)} KB</span>
+    </li>
+  `,
+          )
+          .join('');
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // FILE SELECTION
+      // ═══════════════════════════════════════════════════════════════
+      async function selectFile(filename) {
+        state.currentFile = filename;
+        state.currentSection = null;
+        renderFileList();
+
+        // Show editor view
+        document.getElementById('setupScreen').style.display = 'none';
+        document.getElementById('editorView').style.display = 'flex';
+        document.getElementById('currentFileName').textContent = filename;
+        document.getElementById('currentSectionName').textContent = '';
+        document.getElementById('saveStatus').textContent = '';
+
+        try {
+          const data = await api('GET', `/api/gdd/${encodeURIComponent(filename)}`);
+          state.currentFileData = data;
+          state.hasUnsavedChanges = false;
+          renderSections();
+
+          // Auto-select first section
+          if (data.sections.length > 0) {
+            selectSection(data.sections[0].header);
+          } else {
+            document.getElementById('editorTextarea').value = data.content;
+            updatePreview(data.content);
+          }
+
+          setStatus(`${filename} — ${data.sections.length} section`, 'ok');
+          document.getElementById('fileInfo').textContent =
+            `${data.lineCount} lines, ${(data.size / 1024).toFixed(1)} KB`;
+        } catch (err) {
+          showToast('Gagal load file: ' + err.message, 'error');
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // SECTIONS
+      // ═══════════════════════════════════════════════════════════════
+      function renderSections() {
+        const tree = document.getElementById('sectionTree');
+        if (!state.currentFileData?.sections?.length) {
+          tree.innerHTML =
+            '<li style="padding:12px;font-size:12px;color:var(--text-dim);list-style:none">Tidak ada section</li>';
+          return;
+        }
+
+        tree.innerHTML = state.currentFileData.sections
+          .map(
+            (s, idx) => `
+    <li class="section-item l${s.level} ${state.currentSection === s.header ? 'active' : ''}"
+        data-index="${idx}"
+        onclick="selectSectionByIndex(${idx})"
+        title="${s.title.replace(/"/g, '&quot;')}">
+      <span class="level-badge">${'#'.repeat(s.level)}</span>
+      ${s.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+    </li>
+  `,
+          )
+          .join('');
+      }
+
+      function selectSectionByIndex(idx) {
+        const section = state.currentFileData?.sections?.[idx];
+        if (section) selectSection(section.header);
+      }
+
+      function selectFileByIndex(idx) {
+        const file = state.files[idx];
+        if (file) selectFile(file.name);
+      }
+
+      function selectSection(header) {
+        state.currentSection = header;
+        state.hasUnsavedChanges = false;
+        renderSections();
+
+        const section = state.currentFileData.sections.find((s) => s.header === header);
+        if (!section) return;
+
+        document.getElementById('currentSectionName').textContent = section.header;
+        document.getElementById('editorTextarea').value = section.content.join('\n').trim();
+        document.getElementById('saveStatus').textContent = '';
+
+        updatePreview(section.content.join('\n').trim());
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // PREVIEW
+      // ═══════════════════════════════════════════════════════════════
+      function updatePreview(markdown) {
+        const preview = document.getElementById('previewPane');
+        // Simple markdown → HTML conversion
+        let html = markdown
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          // Code blocks
+          .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+          // Inline code
+          .replace(/`([^`]+)`/g, '<code>$1</code>')
+          // Headers
+          .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+          .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+          .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+          .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+          // Bold and italic
+          .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>')
+          // Links
+          .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" style="color:var(--accent)">$1</a>')
+          // Horizontal rules
+          .replace(/^---$/gm, '<hr>')
+          // Blockquotes
+          .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+          // Lists
+          .replace(/^- (.+)$/gm, '<li>$1</li>')
+          .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+          // Paragraphs
+          .replace(/\n\n/g, '</p><p>')
+          .replace(/^(.+)$/gm, (m) => {
+            if (m.startsWith('<')) return m;
+            return m;
+          });
+
+        preview.innerHTML = '<p>' + html + '</p>';
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // AUTO-PREVIEW on type
+      // ═══════════════════════════════════════════════════════════════
+      let previewTimer;
+      document.getElementById('editorTextarea').addEventListener('input', () => {
+        state.hasUnsavedChanges = true;
+        document.getElementById('saveStatus').textContent = '● Belum disimpan';
+        document.getElementById('saveStatus').style.color = 'var(--accent)';
+
+        clearTimeout(previewTimer);
+        previewTimer = setTimeout(() => {
+          updatePreview(document.getElementById('editorTextarea').value);
+        }, 300);
+      });
+
+      // Keyboard shortcut: Ctrl+S (only when editing textarea)
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          if (document.activeElement === document.getElementById('editorTextarea')) {
+            e.preventDefault();
+            saveSection();
+          }
+        }
+      });
+
+      // ═══════════════════════════════════════════════════════════════
+      // SAVE
+      // ═══════════════════════════════════════════════════════════════
+      async function saveSection() {
+        if (!state.currentFile || !state.currentSection) {
+          return showToast('Pilih file dan section dulu', 'error');
+        }
+
+        const content = document.getElementById('editorTextarea').value;
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Menyimpan...';
+
+        try {
+          const result = await api('PUT', `/api/gdd/${encodeURIComponent(state.currentFile)}`, {
+            section: state.currentSection,
+            content,
+          });
+
+          state.hasUnsavedChanges = false;
+          document.getElementById('saveStatus').textContent = '✓ Tersimpan';
+          document.getElementById('saveStatus').style.color = 'var(--green)';
+          showToast('Section tersimpan!', 'success');
+
+          // Reload file data to refresh sections
+          const data = await api('GET', `/api/gdd/${encodeURIComponent(state.currentFile)}`);
+          state.currentFileData = data;
+          renderFileList();
+        } catch (err) {
+          showToast('Gagal simpan: ' + err.message, 'error');
+          document.getElementById('saveStatus').textContent = '✗ Gagal simpan';
+          document.getElementById('saveStatus').style.color = 'var(--red)';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '💾 Simpan';
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // START
+      // ═══════════════════════════════════════════════════════════════
+      init();
+    </script>
+  </body>
+</html>
