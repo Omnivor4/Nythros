@@ -40,6 +40,13 @@ const { Agent } = await import('../src/agent/Agent.js');
 const desktop = await import('../src/tooling/desktopTools.js');
 const { recordSuccess } = await import('../src/infrastructure/state/errorWatchdog.js');
 
+// ── Platform check ────────────────────────────────────────────
+if (!desktop.isDesktopSupported()) {
+  console.log('  ⏭️  Skipping all desktop tool tests (non-Windows platform)\n');
+  console.log(`\n📊 Hasil: 0 passed, 0 failed from 0 tests\n`);
+  process.exit(0);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // TESTS
 // ═══════════════════════════════════════════════════════════════

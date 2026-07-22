@@ -46,75 +46,14 @@ const { recordSuccess } = await import('../src/infrastructure/state/errorWatchdo
 // TESTS
 // ═══════════════════════════════════════════════════════════════
 // ── 17. HTTP 500 mid-chain ───────────────────────────────────
-await testAsync('Agent throws gateway error when LLM returns HTTP 500 mid-chain', async () => {
-  recordSuccess(); // Reset circuit breaker before this error test
-  let requestCount = 0;
-  desktop._setPSMock(() => {
-    return JSON.stringify({ pid: 8888, process: 'notepad', success: true });
-  });
-
-  try {
-    let caughtError = null;
-
-    await runWithServer(
-      (req, res) => {
-        let body = '';
-        req.on('data', (c) => (body += c));
-        req.on('end', () => {
-          if (req.url === '/chat/completions' && req.method === 'POST') {
-            requestCount++;
-            if (requestCount === 1) {
-              // First request succeeds: send tool_call
-              sendSSEToolCall(res, [
-                { id: 'call_500_1', name: 'launch_app', input: { target: 'notepad.exe' } },
-              ]);
-            } else {
-              // Second request: HTTP 500 — model overloaded / server error
-              sendHttpErrorResponse(res, 500, 'Model is overloaded. Please try again later.');
-            }
-          } else if (req.url === '/models') {
-            sendModelsResponse(res);
-          }
-        });
-      },
-      async (baseURL) => {
-        const agent = new Agent(makeConfig(baseURL));
-        try {
-          await agent.process('Buka notepad lalu lanjut', {
-            effort: 'Low',
-            mode: 'general',
-            onProgress: () => {},
-          });
-          assert.fail('Harus throw error karena HTTP 500 di tengah chain');
-        } catch (err) {
-          caughtError = err;
-        }
-      },
-    );
-
-    assert.ok(caughtError !== null, 'Harus ada error yang ditangkap');
-    if (caughtError) {
-      const msg =
-        typeof caughtError === 'string' ? caughtError : caughtError.message || String(caughtError);
-      assert.ok(msg.includes('500'), `Error harus mention HTTP 500: ${msg.slice(0, 200)}`);
-      assert.ok(
-        msg.includes('Gateway error') || msg.includes('overloaded') || msg.includes('server'),
-        `Error harus mention gateway: ${msg.slice(0, 200)}`,
-      );
-    }
-  } finally {
-    desktop._clearPSMock();
-  }
-});
-
-// ── 18. HTTP 502 mid-chain with error body ────────────────────
-await testAsync(
-  'Agent throws gateway error when LLM returns HTTP 502 mid-chain with error body',
-  async () => {
+if (!desktop.isDesktopSupported()) {
+  console.log('  ⏭️  Test 17: HTTP 500 mid-chain (desktop tools unavailable on non-Windows)');
+} else {
+  await testAsync('Agent throws gateway error when LLM returns HTTP 500 mid-chain', async () => {
     recordSuccess(); // Reset circuit breaker before this error test
     let requestCount = 0;
     desktop._setPSMock(() => {
-      return JSON.stringify({ pid: 9999, process: 'notepad', success: true });
+      return JSON.stringify({ pid: 8888, process: 'notepad', success: true });
     });
 
     try {
@@ -130,15 +69,11 @@ await testAsync(
               if (requestCount === 1) {
                 // First request succeeds: send tool_call
                 sendSSEToolCall(res, [
-                  { id: 'call_502_1', name: 'launch_app', input: { target: 'notepad.exe' } },
+                  { id: 'call_500_1', name: 'launch_app', input: { target: 'notepad.exe' } },
                 ]);
               } else {
-                // Second request: HTTP 502 — Bad Gateway (upstream failure)
-                sendHttpErrorResponse(
-                  res,
-                  502,
-                  'Upstream model provider returned an error: rate limit exceeded',
-                );
+                // Second request: HTTP 500 — model overloaded / server error
+                sendHttpErrorResponse(res, 500, 'Model is overloaded. Please try again later.');
               }
             } else if (req.url === '/models') {
               sendModelsResponse(res);
@@ -153,7 +88,7 @@ await testAsync(
               mode: 'general',
               onProgress: () => {},
             });
-            assert.fail('Harus throw error karena HTTP 502 di tengah chain');
+            assert.fail('Harus throw error karena HTTP 500 di tengah chain');
           } catch (err) {
             caughtError = err;
           }
@@ -166,23 +101,100 @@ await testAsync(
           typeof caughtError === 'string'
             ? caughtError
             : caughtError.message || String(caughtError);
-        assert.ok(msg.includes('502'), `Error harus mention HTTP 502: ${msg.slice(0, 200)}`);
-        // The provider reads the error body and includes it in the message
+        assert.ok(msg.includes('500'), `Error harus mention HTTP 500: ${msg.slice(0, 200)}`);
         assert.ok(
-          msg.includes('Gateway error'),
-          `Error harus format 'Gateway error 502: ...': ${msg.slice(0, 200)}`,
-        );
-        // The error body from the mock server
-        assert.ok(
-          msg.includes('rate limit') || msg.includes('upstream') || msg.includes('Upstream'),
-          `Error harus mention penyebab dari body: ${msg.slice(0, 200)}`,
+          msg.includes('Gateway error') || msg.includes('overloaded') || msg.includes('server'),
+          `Error harus mention gateway: ${msg.slice(0, 200)}`,
         );
       }
     } finally {
       desktop._clearPSMock();
     }
-  },
-);
+  });
+}
+
+// ── 18. HTTP 502 mid-chain with error body ────────────────────
+if (!desktop.isDesktopSupported()) {
+  console.log(
+    '  ⏭️  Test 18: HTTP 502 mid-chain with error body (desktop tools unavailable on non-Windows)',
+  );
+} else {
+  await testAsync(
+    'Agent throws gateway error when LLM returns HTTP 502 mid-chain with error body',
+    async () => {
+      recordSuccess(); // Reset circuit breaker before this error test
+      let requestCount = 0;
+      desktop._setPSMock(() => {
+        return JSON.stringify({ pid: 9999, process: 'notepad', success: true });
+      });
+
+      try {
+        let caughtError = null;
+
+        await runWithServer(
+          (req, res) => {
+            let body = '';
+            req.on('data', (c) => (body += c));
+            req.on('end', () => {
+              if (req.url === '/chat/completions' && req.method === 'POST') {
+                requestCount++;
+                if (requestCount === 1) {
+                  // First request succeeds: send tool_call
+                  sendSSEToolCall(res, [
+                    { id: 'call_502_1', name: 'launch_app', input: { target: 'notepad.exe' } },
+                  ]);
+                } else {
+                  // Second request: HTTP 502 — Bad Gateway (upstream failure)
+                  sendHttpErrorResponse(
+                    res,
+                    502,
+                    'Upstream model provider returned an error: rate limit exceeded',
+                  );
+                }
+              } else if (req.url === '/models') {
+                sendModelsResponse(res);
+              }
+            });
+          },
+          async (baseURL) => {
+            const agent = new Agent(makeConfig(baseURL));
+            try {
+              await agent.process('Buka notepad lalu lanjut', {
+                effort: 'Low',
+                mode: 'general',
+                onProgress: () => {},
+              });
+              assert.fail('Harus throw error karena HTTP 502 di tengah chain');
+            } catch (err) {
+              caughtError = err;
+            }
+          },
+        );
+
+        assert.ok(caughtError !== null, 'Harus ada error yang ditangkap');
+        if (caughtError) {
+          const msg =
+            typeof caughtError === 'string'
+              ? caughtError
+              : caughtError.message || String(caughtError);
+          assert.ok(msg.includes('502'), `Error harus mention HTTP 502: ${msg.slice(0, 200)}`);
+          // The provider reads the error body and includes it in the message
+          assert.ok(
+            msg.includes('Gateway error'),
+            `Error harus format 'Gateway error 502: ...': ${msg.slice(0, 200)}`,
+          );
+          // The error body from the mock server
+          assert.ok(
+            msg.includes('rate limit') || msg.includes('upstream') || msg.includes('Upstream'),
+            `Error harus mention penyebab dari body: ${msg.slice(0, 200)}`,
+          );
+        }
+      } finally {
+        desktop._clearPSMock();
+      }
+    },
+  );
+}
 
 // ── 19. HTTP error on FIRST request ───────────────────────────
 await testAsync(
@@ -525,82 +537,86 @@ await testAsync(
 );
 
 // ── 25. HTTP 503 mid-chain (Service Unavailable) ──────────────
-await testAsync(
-  'Agent throws gateway error when LLM returns HTTP 503 (Service Unavailable) mid-chain',
-  async () => {
-    recordSuccess(); // Reset circuit breaker before this error test
-    let requestCount = 0;
-    desktop._setPSMock(() => {
-      return JSON.stringify({ pid: 8888, process: 'notepad', success: true });
-    });
+if (!desktop.isDesktopSupported()) {
+  console.log('  ⏭️  Test 25: HTTP 503 mid-chain (desktop tools unavailable on non-Windows)');
+} else {
+  await testAsync(
+    'Agent throws gateway error when LLM returns HTTP 503 (Service Unavailable) mid-chain',
+    async () => {
+      recordSuccess(); // Reset circuit breaker before this error test
+      let requestCount = 0;
+      desktop._setPSMock(() => {
+        return JSON.stringify({ pid: 8888, process: 'notepad', success: true });
+      });
 
-    try {
-      let caughtError = null;
+      try {
+        let caughtError = null;
 
-      await runWithServer(
-        (req, res) => {
-          let body = '';
-          req.on('data', (c) => (body += c));
-          req.on('end', () => {
-            if (req.url === '/chat/completions' && req.method === 'POST') {
-              requestCount++;
-              if (requestCount === 1) {
-                // First request succeeds: send tool_call
-                sendSSEToolCall(res, [
-                  { id: 'call_503_1', name: 'launch_app', input: { target: 'notepad.exe' } },
-                ]);
-              } else {
-                // Second request: HTTP 503 — Service Unavailable (model overloaded)
-                sendHttpErrorResponse(
-                  res,
-                  503,
-                  'Model is overloaded. Please try again later. Upstream rate limited.',
-                );
+        await runWithServer(
+          (req, res) => {
+            let body = '';
+            req.on('data', (c) => (body += c));
+            req.on('end', () => {
+              if (req.url === '/chat/completions' && req.method === 'POST') {
+                requestCount++;
+                if (requestCount === 1) {
+                  // First request succeeds: send tool_call
+                  sendSSEToolCall(res, [
+                    { id: 'call_503_1', name: 'launch_app', input: { target: 'notepad.exe' } },
+                  ]);
+                } else {
+                  // Second request: HTTP 503 — Service Unavailable (model overloaded)
+                  sendHttpErrorResponse(
+                    res,
+                    503,
+                    'Model is overloaded. Please try again later. Upstream rate limited.',
+                  );
+                }
+              } else if (req.url === '/models') {
+                sendModelsResponse(res);
               }
-            } else if (req.url === '/models') {
-              sendModelsResponse(res);
-            }
-          });
-        },
-        async (baseURL) => {
-          const agent = new Agent(makeConfig(baseURL));
-          try {
-            await agent.process('Buka notepad lalu lanjut', {
-              effort: 'Low',
-              mode: 'general',
-              onProgress: () => {},
             });
-            assert.fail('Harus throw error karena HTTP 503 di tengah chain');
-          } catch (err) {
-            caughtError = err;
-          }
-        },
-      );
+          },
+          async (baseURL) => {
+            const agent = new Agent(makeConfig(baseURL));
+            try {
+              await agent.process('Buka notepad lalu lanjut', {
+                effort: 'Low',
+                mode: 'general',
+                onProgress: () => {},
+              });
+              assert.fail('Harus throw error karena HTTP 503 di tengah chain');
+            } catch (err) {
+              caughtError = err;
+            }
+          },
+        );
 
-      assert.ok(caughtError !== null, 'Harus ada error yang ditangkap');
-      if (caughtError) {
-        const msg =
-          typeof caughtError === 'string'
-            ? caughtError
-            : caughtError.message || String(caughtError);
-        // Status code harus ada
-        assert.ok(msg.includes('503'), `Error harus mention HTTP 503: ${msg.slice(0, 200)}`);
-        // Format gateway error
-        assert.ok(
-          msg.includes('Gateway error'),
-          `Error harus format 'Gateway error 503: ...': ${msg.slice(0, 200)}`,
-        );
-        // Error body dari mock server
-        assert.ok(
-          msg.includes('overloaded') || msg.includes('rate limited'),
-          `Error harus mention penyebab dari body: ${msg.slice(0, 200)}`,
-        );
+        assert.ok(caughtError !== null, 'Harus ada error yang ditangkap');
+        if (caughtError) {
+          const msg =
+            typeof caughtError === 'string'
+              ? caughtError
+              : caughtError.message || String(caughtError);
+          // Status code harus ada
+          assert.ok(msg.includes('503'), `Error harus mention HTTP 503: ${msg.slice(0, 200)}`);
+          // Format gateway error
+          assert.ok(
+            msg.includes('Gateway error'),
+            `Error harus format 'Gateway error 503: ...': ${msg.slice(0, 200)}`,
+          );
+          // Error body dari mock server
+          assert.ok(
+            msg.includes('overloaded') || msg.includes('rate limited'),
+            `Error harus mention penyebab dari body: ${msg.slice(0, 200)}`,
+          );
+        }
+      } finally {
+        desktop._clearPSMock();
       }
-    } finally {
-      desktop._clearPSMock();
-    }
-  },
-);
+    },
+  );
+}
 
 // ── 26. HTTP 503 on FIRST request ─────────────────────────────
 await testAsync(
