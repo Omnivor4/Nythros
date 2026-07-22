@@ -14,3 +14,6 @@ selfImprove_log.txt
 
 # Code coverage reports
 coverage/
+ci_full_log.txt
+eslint_output.json
+eslint_warnings.txt
