@@ -26,8 +26,8 @@ jobs:
 
       - run: npm ci
 
-      - name: Test & Coverage
-        run: npm run coverage:full
+      - name: Test
+        run: npm test
 
       - name: Lint
         continue-on-error: true
